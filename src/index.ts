@@ -2,8 +2,15 @@ import express, { Application, Request, Response } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
-import authRoutes from './routes/auth.routes';
 import { validateConnection } from './config/appwrite.config';
+
+// Import all routes
+import authRoutes from './routes/auth.routes';
+import userRoutes from './routes/user.routes';
+import ranksRoutes from './routes/ranks.routes';
+import collegeRoutes from './routes/college.routes';
+import courseRoutes from './routes/course.routes';
+import preferenceRoutes from './routes/preference.routes';
 
 // Load environment variables
 dotenv.config();
@@ -43,22 +50,68 @@ app.get('/health', (req: Request, res: Response) => {
     res.status(200).json({
         status: 'OK',
         timestamp: new Date().toISOString(),
-        service: 'BharatMinds AI Backend',
+        service: 'BHARAT MINDS - Option Entry Generator API',
+        version: '1.0.0',
     });
 });
 
-// API routes
+// BHARAT MINDS API routes
+app.use('/api/users', userRoutes);
+app.use('/api/ranks', ranksRoutes);
+app.use('/api/colleges', collegeRoutes);
+app.use('/api/courses', courseRoutes);
+app.use('/api/preferences', preferenceRoutes);
+
+// Legacy routes (backward compatibility)
 app.use('/api/auth', authRoutes);
 
-// Root endpoint
+// Root endpoint with API documentation
 app.get('/', (req: Request, res: Response) => {
     res.status(200).json({
-        message: 'BharatMinds AI Backend API',
+        message: 'BHARAT MINDS - Option Entry Generator API',
         version: '1.0.0',
+        description: 'Karnataka CET/NEET Career Counselling Platform Backend',
         endpoints: {
             health: '/health',
-            auth: '/api/auth',
+            users: {
+                base: '/api/users',
+                register: 'POST /api/users/register',
+                getProfile: 'GET /api/users/profile/:userId',
+                updateProfile: 'PUT /api/users/profile/:userId',
+                calculateEligibility: 'POST /api/users/calculate-eligibility',
+            },
+            ranks: {
+                base: '/api/ranks',
+                addRank: 'POST /api/ranks',
+                getRanks: 'GET /api/ranks/:userId',
+                deleteRank: 'DELETE /api/ranks/:userId/:counsellingType/:courseType',
+            },
+            colleges: {
+                base: '/api/colleges',
+                search: 'GET /api/colleges?...filters',
+                getByCode: 'GET /api/colleges/:code',
+                listCities: 'GET /api/colleges/cities/list',
+                listTypes: 'GET /api/colleges/types/list',
+            },
+            courses: {
+                base: '/api/courses',
+                getByCollege: 'GET /api/courses/college/:collegeId',
+                search: 'GET /api/courses/search?...filters',
+                seatTypes: 'GET /api/courses/seat-types/{ugcet|ugneet}',
+                courseTypes: 'GET /api/courses/course-types/{ugcet|ugneet}',
+            },
+            preferences: {
+                base: '/api/preferences',
+                add: 'POST /api/preferences',
+                bulkAdd: 'POST /api/preferences/bulk',
+                get: 'GET /api/preferences/:userId/:counsellingType',
+                remove: 'DELETE /api/preferences/:userId/:counsellingType/:priority',
+                reorder: 'PUT /api/preferences/reorder',
+                lock: 'POST /api/preferences/lock',
+                unlock: 'POST /api/preferences/unlock',
+            },
         },
+        documentation: 'See SERVICES_COMPLETE.md and IMPLEMENTATION_STATUS.md',
     });
 });
 
