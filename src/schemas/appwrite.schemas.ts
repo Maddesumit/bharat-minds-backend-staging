@@ -44,9 +44,9 @@ export const UserProfilesSchema = {
 
         // Eligibility Information
         { key: 'baseCategory', type: 'string', size: 10, required: true },
-        { key: 'hasKannada', type: 'boolean', required: true, default: false },
-        { key: 'hasRural', type: 'boolean', required: true, default: false },
-        { key: 'hasHK', type: 'boolean', required: true, default: false },
+        { key: 'hasKannada', type: 'boolean', required: false, default: false },
+        { key: 'hasRural', type: 'boolean', required: false, default: false },
+        { key: 'hasHK', type: 'boolean', required: false, default: false },
 
         // Generated eligible categories (stored as JSON array)
         { key: 'eligibleCategories', type: 'string', size: 500, required: true },
@@ -55,9 +55,9 @@ export const UserProfilesSchema = {
         { key: 'counsellingTypes', type: 'string', size: 100, required: true }, // JSON array
 
         // Profile status flags
-        { key: 'profileCompleted', type: 'boolean', required: true, default: false },
-        { key: 'ranksEntered', type: 'boolean', required: true, default: false },
-        { key: 'preferencesEntered', type: 'boolean', required: true, default: false },
+        { key: 'profileCompleted', type: 'boolean', required: false, default: false },
+        { key: 'ranksEntered', type: 'boolean', required: false, default: false },
+        { key: 'preferencesEntered', type: 'boolean', required: false, default: false },
     ],
 
     indexes: [
@@ -244,8 +244,8 @@ export const UserPreferencesSchema = {
         { key: 'options', type: 'string', size: 50000, required: true }, // JSON array of OptionEntry[]
 
         // Metadata
-        { key: 'totalOptions', type: 'integer', required: true, default: 0 },
-        { key: 'isLocked', type: 'boolean', required: true, default: false },
+        { key: 'totalOptions', type: 'integer', required: false, default: 0 },
+        { key: 'isLocked', type: 'boolean', required: false, default: false },
         { key: 'lastModified', type: 'datetime', required: true },
     ],
 
