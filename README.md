@@ -1,6 +1,3 @@
-# BharatMinds AI - Backend API
-
-A Node.js + TypeScript backend API for the BharatMinds AI Career Counselling Platform, built with Express and Appwrite.
 
 ## 📁 Project Structure
 
