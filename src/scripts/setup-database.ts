@@ -9,8 +9,7 @@
 
 import { Client, Databases } from 'node-appwrite';
 
-// Index type literals for Appwrite SDK
-type AppwriteIndexType = 'key' | 'unique' | 'fulltext';
+// Index type for Appwrite SDK - using string to avoid type conflicts
 import dotenv from 'dotenv';
 import { AppwriteSchemas } from '../schemas/appwrite.schemas';
 
@@ -178,13 +177,11 @@ async function createIndex(
     }
 ): Promise<boolean> {
     try {
-        const indexType = index.type as AppwriteIndexType;
-
         await databases.createIndex(
             DATABASE_ID,
             collectionId,
             index.key,
-            indexType,
+            index.type as any, // SDK version compatibility
             index.attributes
         );
 

@@ -11,6 +11,7 @@ import ranksRoutes from './routes/ranks.routes';
 import collegeRoutes from './routes/college.routes';
 import courseRoutes from './routes/course.routes';
 import preferenceRoutes from './routes/preference.routes';
+import optionGeneratorRoutes from './routes/option-generator.routes';
 
 // Load environment variables
 dotenv.config();
@@ -61,6 +62,7 @@ app.use('/api/ranks', ranksRoutes);
 app.use('/api/colleges', collegeRoutes);
 app.use('/api/courses', courseRoutes);
 app.use('/api/preferences', preferenceRoutes);
+app.use('/api/options', optionGeneratorRoutes);
 
 // Legacy routes (backward compatibility)
 app.use('/api/auth', authRoutes);
@@ -109,6 +111,15 @@ app.get('/', (req: Request, res: Response) => {
                 reorder: 'PUT /api/preferences/reorder',
                 lock: 'POST /api/preferences/lock',
                 unlock: 'POST /api/preferences/unlock',
+            },
+            options: {
+                base: '/api/options',
+                courseCategories: 'GET /api/options/course-categories/:counsellingType',
+                engineeringBranches: 'GET /api/options/engineering-branches',
+                saveRank: 'POST /api/options/ranks',
+                getRanks: 'GET /api/options/ranks/:userId',
+                generate: 'POST /api/options/generate/:userId',
+                requiresDualRanks: 'GET /api/options/requires-dual-ranks/:courseCategory',
             },
         },
         documentation: 'See SERVICES_COMPLETE.md and IMPLEMENTATION_STATUS.md',

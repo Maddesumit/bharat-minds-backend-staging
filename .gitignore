@@ -46,3 +46,4 @@ coverage/
 .appwrite/
 
 curl commands.txt
+docs
