@@ -203,33 +203,71 @@ function updateEligibleCategories() {
 // GENERATE ELIGIBLE CATEGORIES (Karnataka Rules)
 // ============================================================================
 function generateEligibleCategories({ baseCategory, reservations }) {
-    const categories = new Set([baseCategory]);
+    const categories = new Set();
 
-    if (reservations.hyderabadKarnataka && baseCategory !== 'GM') {
-        categories.add(baseCategory + 'H');
+    // EVERYONE is eligible for GM (General Merit) based on rank!
+    // GM also has reservation variants
+    categories.add('GM');
+
+    // Add GM reservation variants based on user's reservations
+    if (reservations.rural) {
+        categories.add('GMR');
     }
 
-    if (reservations.kannada && baseCategory !== 'GM') {
-        categories.add(baseCategory + 'K');
+    if (reservations.kannada) {
+        categories.add('GMK');
+
+        if (reservations.rural) {
+            categories.add('GMKR');
+        }
 
         if (reservations.hyderabadKarnataka) {
-            categories.add(baseCategory + 'KH');
+            categories.add('GMKH');
+        }
+
+        if (reservations.rural && reservations.hyderabadKarnataka) {
+            categories.add('GMKRH');
+        }
+    }
+
+    if (reservations.hyderabadKarnataka) {
+        categories.add('GMH');
+
+        if (reservations.rural) {
+            categories.add('GMRH');
+        }
+    }
+
+    // Add their base category and its reservations (if not GM)
+    if (baseCategory !== 'GM') {
+        categories.add(baseCategory);
+
+        if (reservations.hyderabadKarnataka) {
+            categories.add(baseCategory + 'H');
+        }
+
+        if (reservations.kannada) {
+            categories.add(baseCategory + 'K');
+
+            if (reservations.hyderabadKarnataka) {
+                categories.add(baseCategory + 'KH');
+            }
+
+            if (reservations.rural) {
+                categories.add(baseCategory + 'KR');
+
+                if (reservations.hyderabadKarnataka) {
+                    categories.add(baseCategory + 'KRH');
+                }
+            }
         }
 
         if (reservations.rural) {
-            categories.add(baseCategory + 'KR');
+            categories.add(baseCategory + 'R');
 
             if (reservations.hyderabadKarnataka) {
-                categories.add(baseCategory + 'KRH');
+                categories.add(baseCategory + 'RH');
             }
-        }
-    }
-
-    if (reservations.rural && baseCategory !== 'GM') {
-        categories.add(baseCategory + 'R');
-
-        if (reservations.hyderabadKarnataka) {
-            categories.add(baseCategory + 'RH');
         }
     }
 
@@ -349,7 +387,9 @@ async function handleFormSubmit(e) {
     // Add rank data
     if (dualRankCategories.includes(courseCategory.value)) {
         formData.theoryRank = parseInt(theoryRank.value);
-        formData.practicalRank = parseInt(practicalRank.value);
+        if (attendedPracticalYes.checked && practicalRank.value) {
+            formData.practicalRank = parseInt(practicalRank.value);
+        }
     } else {
         formData.generalMeritRank = parseInt(generalMeritRank.value);
     }
@@ -399,7 +439,7 @@ function displayResults(formData) {
             </div>
             <div>
                 <strong style="color: #4a5568;">Your Rank:</strong>
-                <p style="color: #2d3748; margin-top: 5px;">${formData.generalMeritRank || `T: ${formData.theoryRank}, P: ${formData.practicalRank}`}</p>
+                <p style="color: #2d3748; margin-top: 5px;">${formData.generalMeritRank || `T: ${formData.theoryRank}${formData.practicalRank ? ', P: ' + formData.practicalRank : ' (No Practical)'}`}</p>
             </div>
             <div>
                 <strong style="color: #4a5568;">Eligible Categories:</strong>
