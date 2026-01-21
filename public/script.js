@@ -28,6 +28,12 @@ const kannadaReservation = document.getElementById('kannadaReservation');
 const ruralReservation = document.getElementById('ruralReservation');
 const hkReservation = document.getElementById('hkReservation');
 
+const snqSection = document.getElementById('snqSection');
+const claimSNQYes = document.getElementById('claimSNQYes');
+const claimSNQNo = document.getElementById('claimSNQNo');
+const snqIncomeSlabGroup = document.getElementById('snqIncomeSlabGroup');
+const snqIncomeSlab = document.getElementById('snqIncomeSlab');
+
 const eligibleCategoriesBox = document.getElementById('eligibleCategoriesBox');
 const eligibleCategoriesList = document.getElementById('eligibleCategoriesList');
 
@@ -82,6 +88,11 @@ hkReservation.addEventListener('change', updateEligibleCategories);
 attendedPracticalYes.addEventListener('change', handlePracticalAttendance);
 attendedPracticalNo.addEventListener('change', handlePracticalAttendance);
 
+// SNQ quota handlers
+claimSNQYes.addEventListener('change', handleSNQClaim);
+claimSNQNo.addEventListener('change', handleSNQClaim);
+snqIncomeSlab.addEventListener('change', updateEligibleCategories);
+
 prevBtn.addEventListener('click', previousStep);
 nextBtn.addEventListener('click', nextStep);
 form.addEventListener('submit', handleFormSubmit);
@@ -120,9 +131,19 @@ function handleCourseCategoryChange() {
     if (selected === 'Engineering') {
         branchGroup.style.display = 'block';
         populateEngineeringBranches();
+
+        // Show SNQ section for Engineering
+        snqSection.style.display = 'block';
     } else {
         branchGroup.style.display = 'none';
         branch.value = '';
+
+        // Hide SNQ section for non-Engineering
+        snqSection.style.display = 'none';
+        claimSNQYes.checked = false;
+        claimSNQNo.checked = false;
+        snqIncomeSlabGroup.style.display = 'none';
+        snqIncomeSlab.value = '';
     }
 
     // Show/hide rank inputs based on category
@@ -171,6 +192,24 @@ function handlePracticalAttendance() {
 }
 
 // ============================================================================
+// SNQ CLAIM HANDLING
+// ============================================================================
+function handleSNQClaim() {
+    if (claimSNQYes.checked) {
+        // Show income slab selection
+        snqIncomeSlabGroup.style.display = 'block';
+        snqIncomeSlab.required = true;
+    } else if (claimSNQNo.checked) {
+        // Hide income slab and clear selection
+        snqIncomeSlabGroup.style.display = 'none';
+        snqIncomeSlab.required = false;
+        snqIncomeSlab.value = '';
+    }
+    // Update eligible categories whenever SNQ status changes
+    updateEligibleCategories();
+}
+
+// ============================================================================
 // UPDATE ELIGIBLE CATEGORIES
 // ============================================================================
 function updateEligibleCategories() {
@@ -179,13 +218,17 @@ function updateEligibleCategories() {
         return;
     }
 
+    // Get SNQ slab if claimed
+    const snqSlab = (claimSNQYes.checked && snqIncomeSlab.value) ? snqIncomeSlab.value : null;
+
     const categories = generateEligibleCategories({
         baseCategory: baseCategory.value,
         reservations: {
             kannada: kannadaReservation.checked,
             rural: ruralReservation.checked,
             hyderabadKarnataka: hkReservation.checked
-        }
+        },
+        snqSlab: snqSlab
     });
 
     eligibleCategoriesList.innerHTML = '';
@@ -202,7 +245,7 @@ function updateEligibleCategories() {
 // ============================================================================
 // GENERATE ELIGIBLE CATEGORIES (Karnataka Rules)
 // ============================================================================
-function generateEligibleCategories({ baseCategory, reservations }) {
+function generateEligibleCategories({ baseCategory, reservations, snqSlab }) {
     const categories = new Set();
 
     // EVERYONE is eligible for GM (General Merit) based on rank!
@@ -269,6 +312,11 @@ function generateEligibleCategories({ baseCategory, reservations }) {
                 categories.add(baseCategory + 'RH');
             }
         }
+    }
+
+    // Add SNQ category if applicable (Engineering only)
+    if (snqSlab) {
+        categories.add(snqSlab); // SNQ1, SNQ2, or SNQ3
     }
 
     return Array.from(categories).sort();

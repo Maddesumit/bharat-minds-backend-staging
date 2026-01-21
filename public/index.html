@@ -204,6 +204,55 @@
                         </label>
                     </div>
 
+                    <!-- SNQ Quota (Engineering Only) -->
+                    <div id="snqSection" style="display: none;">
+                        <div class="info-banner"
+                            style="background: linear-gradient(135deg, #fef5e7, #fdebd0); border-left-color: #f39c12;">
+                            <span class="icon">💰</span>
+                            <p style="color: #7d6608;"><strong>SNQ (Supernumerary Quota):</strong> Available only for
+                                Engineering students with family income below ₹2 lakh per annum.</p>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="checkbox-label">Do you want to claim SNQ (Supernumerary Quota)?</label>
+                            <div class="radio-group">
+                                <label class="radio-card">
+                                    <input type="radio" name="claimSNQ" id="claimSNQYes" value="yes">
+                                    <div class="radio-content">
+                                        <div class="radio-icon">✅</div>
+                                        <div>
+                                            <strong>Yes</strong>
+                                            <small>My family income is below ₹2 lakh</small>
+                                        </div>
+                                    </div>
+                                </label>
+
+                                <label class="radio-card">
+                                    <input type="radio" name="claimSNQ" id="claimSNQNo" value="no">
+                                    <div class="radio-content">
+                                        <div class="radio-icon">❌</div>
+                                        <div>
+                                            <strong>No</strong>
+                                            <small>Not applicable/income above ₹2 lakh</small>
+                                        </div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- SNQ Income Slab (shown only if claiming SNQ) -->
+                        <div id="snqIncomeSlabGroup" class="form-group" style="display: none;">
+                            <label for="snqIncomeSlab">Select Your Income Slab *</label>
+                            <select id="snqIncomeSlab">
+                                <option value="">Select Income Slab</option>
+                                <option value="SNQ1">SNQ-1: Below ₹1 lakh per annum</option>
+                                <option value="SNQ2">SNQ-2: ₹1 lakh to ₹1.5 lakh per annum</option>
+                                <option value="SNQ3">SNQ-3: ₹1.5 lakh to ₹2 lakh per annum</option>
+                            </select>
+                            <small class="form-hint">Choose the slab matching your family's annual income</small>
+                        </div>
+                    </div>
+
                     <!-- Eligible Categories Display -->
                     <div id="eligibleCategoriesBox" class="eligible-box" style="display: none;">
                         <h4>Your Eligible Categories</h4>
