@@ -86,11 +86,25 @@ export async function searchColleges(filters: CollegeSearchFilters) {
             });
         }
 
-        // Parse JSON fields
-        const parsed = results.map((doc) => ({
-            ...doc,
-            counsellingTypes: JSON.parse(doc.counsellingTypes || '[]'),
-        }));
+        // Parse counsellingTypes field (handle both string and JSON array)
+        const parsed = results.map((doc) => {
+            let counsellingTypes = [];
+            try {
+                // Try to parse as JSON array first
+                counsellingTypes = JSON.parse(doc.counsellingTypes || '[]');
+            } catch {
+                // If it fails, treat as comma-separated string or single value
+                const typesStr = doc.counsellingTypes || '';
+                counsellingTypes = typesStr.includes(',')
+                    ? typesStr.split(',').map(t => t.trim())
+                    : typesStr ? [typesStr.trim()] : [];
+            }
+
+            return {
+                ...doc,
+                counsellingTypes
+            };
+        });
 
         return {
             success: true,

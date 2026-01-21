@@ -12,6 +12,28 @@ import { CounsellingType } from '../types/domain.types';
 const router = Router();
 
 /**
+ * GET /api/courses
+ * Get all courses (paginated)
+ */
+router.get('/', async (req: Request, res: Response) => {
+    try {
+        const result = await courseService.getAllCourses();
+
+        if (!result.success) {
+            return res.status(404).json(result);
+        }
+
+        return res.status(200).json(result);
+    } catch (error: any) {
+        console.error('Get all courses error:', error);
+        return res.status(500).json({
+            success: false,
+            error: 'Internal server error',
+        });
+    }
+});
+
+/**
  * GET /api/courses/college/:collegeId
  * Get all courses for a college
  */

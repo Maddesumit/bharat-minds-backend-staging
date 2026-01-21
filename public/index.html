@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BharatMinds - Karnataka Counselling Option Generator</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <!-- Background -->
+    <div class="background">
+        <div class="gradient-orb orb-1"></div>
+        <div class="gradient-orb orb-2"></div>
+        <div class="gradient-orb orb-3"></div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">
+                <div class="logo-icon">🎓</div>
+                <h1>BharatMinds AI</h1>
+            </div>
+            <p class="tagline">Karnataka Counselling - Option Entry Generator</p>
+        </header>
+
+        <!-- Main Form Card -->
+        <div class="form-card">
+            <div class="form-header">
+                <h2>Generate Your Option List</h2>
+                <p>Fill in your details to get personalized college options</p>
+            </div>
+
+            <form id="optionForm">
+                <!-- Step 1: Basic Info -->
+                <div class="form-section active" data-step="1">
+                    <h3 class="section-title">
+                        <span class="step-number">1</span>
+                        Basic Information
+                    </h3>
+
+                    <!-- Counselling Type -->
+                    <div class="form-group">
+                        <label for="counsellingType">Counselling Type *</label>
+                        <select id="counsellingType" required>
+                            <option value="">Select Counselling Type</option>
+                            <option value="UGCET">UGCET (Engineering)</option>
+                            <option value="UGNEET">UGNEET (Medical)</option>
+                        </select>
+                    </div>
+
+                    <!-- Course Category -->
+                    <div class="form-group">
+                        <label for="courseCategory">Course Category *</label>
+                        <select id="courseCategory" required disabled>
+                            <option value="">Select Category First</option>
+                        </select>
+                    </div>
+
+                    <!-- Engineering Branch (conditional) -->
+                    <div class="form-group" id="branchGroup" style="display: none;">
+                        <label for="branch">Engineering Branch (Optional)</label>
+                        <select id="branch">
+                            <option value="">All Branches</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Step 2: Rank Details -->
+                <div class="form-section" data-step="2">
+                    <h3 class="section-title">
+                        <span class="step-number">2</span>
+                        Rank Information
+                    </h3>
+
+                    <!-- Standard Rank Input -->
+                    <div id="standardRankGroup">
+                        <div class="form-group">
+                            <label for="generalMeritRank">General Merit Rank *</label>
+                            <input type="number" id="generalMeritRank" min="1" placeholder="Enter your rank">
+                            <small class="form-hint">Your rank in the counselling exam</small>
+                        </div>
+                    </div>
+
+                    <!-- Dual Rank Input (Farm Science/Veterinary) -->
+                    <div id="dualRankGroup" style="display: none;">
+                        <div class="info-banner">
+                            <span class="icon">ℹ️</span>
+                            <p><strong>Note:</strong> Farm Science and Veterinary courses require both Theory and
+                                Practical ranks.</p>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="theoryRank">Theory Rank *</label>
+                            <input type="number" id="theoryRank" min="1" placeholder="Enter your theory rank">
+                        </div>
+
+                        <!-- Practical Exam Attendance Question -->
+                        <div class="form-group">
+                            <label class="checkbox-label">Did you attend the Practical Exam?</label>
+                            <div class="radio-group">
+                                <label class="radio-card">
+                                    <input type="radio" name="attendedPractical" id="attendedPracticalYes" value="yes">
+                                    <div class="radio-content">
+                                        <div class="radio-icon">✍️</div>
+                                        <div>
+                                            <strong>Yes</strong>
+                                            <small>I attended the practical exam</small>
+                                        </div>
+                                    </div>
+                                </label>
+
+                                <label class="radio-card">
+                                    <input type="radio" name="attendedPractical" id="attendedPracticalNo" value="no">
+                                    <div class="radio-content">
+                                        <div class="radio-icon">🚫</div>
+                                        <div>
+                                            <strong>No</strong>
+                                            <small>I did not attend</small>
+                                        </div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Practical Rank (shown only if attended) -->
+                        <div class="form-group" id="practicalRankGroup" style="display: none;">
+                            <label for="practicalRank">Practical Rank *</label>
+                            <input type="number" id="practicalRank" min="1" placeholder="Enter your practical rank">
+                            <small class="form-hint">Your rank in the practical examination</small>
+                        </div>
+
+                        <!-- Not Attended Message -->
+                        <div id="practicalNotAttendedMsg" class="info-banner"
+                            style="display: none; background: linear-gradient(135deg, #fff5f5, #ffe5e5); border-left-color: #e53e3e;">
+                            <span class="icon">ℹ️</span>
+                            <p style="color: #742a2a;"><strong>Note:</strong> Since you didn't attend the practical
+                                exam, only your theory rank will be considered for option generation.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 3: Category & Reservations -->
+                <div class="form-section" data-step="3">
+                    <h3 class="section-title">
+                        <span class="step-number">3</span>
+                        Category & Reservations
+                    </h3>
+
+                    <!-- Base Category -->
+                    <div class="form-group">
+                        <label for="baseCategory">Base Category *</label>
+                        <select id="baseCategory" required>
+                            <option value="">Select Your Category</option>
+                            <option value="GM">General Merit (GM)</option>
+                            <option value="1">Category 1</option>
+                            <option value="2A">Category 2A</option>
+                            <option value="2B">Category 2B</option>
+                            <option value="3A">Category 3A</option>
+                            <option value="3B">Category 3B</option>
+                            <option value="SC">Scheduled Caste (SC)</option>
+                            <option value="ST">Scheduled Tribe (ST)</option>
+                        </select>
+                    </div>
+
+                    <!-- Reservations -->
+                    <label class="checkbox-label">Applicable Reservations</label>
+
+                    <div class="checkbox-group">
+                        <label class="checkbox-card">
+                            <input type="checkbox" id="kannadaReservation">
+                            <div class="checkbox-content">
+                                <div class="checkbox-icon">🏫</div>
+                                <div>
+                                    <strong>Kannada Medium</strong>
+                                    <small>Studied in Kannada Medium</small>
+                                </div>
+                            </div>
+                        </label>
+
+                        <label class="checkbox-card">
+                            <input type="checkbox" id="ruralReservation">
+                            <div class="checkbox-content">
+                                <div class="checkbox-icon">🏡</div>
+                                <div>
+                                    <strong>Rural Reservation</strong>
+                                    <small>From rural area</small>
+                                </div>
+                            </div>
+                        </label>
+
+                        <label class="checkbox-card">
+                            <input type="checkbox" id="hkReservation">
+                            <div class="checkbox-content">
+                                <div class="checkbox-icon">📜</div>
+                                <div>
+                                    <strong>HK - 371J Certificate</strong>
+                                    <small>Hyderabad Karnataka region</small>
+                                </div>
+                            </div>
+                        </label>
+                    </div>
+
+                    <!-- Eligible Categories Display -->
+                    <div id="eligibleCategoriesBox" class="eligible-box" style="display: none;">
+                        <h4>Your Eligible Categories</h4>
+                        <div id="eligibleCategoriesList" class="categories-tags"></div>
+                        <small>You can apply under any of these categories</small>
+                    </div>
+                </div>
+
+                <!-- Form Actions -->
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" id="prevBtn" style="display: none;">
+                        ← Previous
+                    </button>
+                    <button type="button" class="btn btn-secondary" id="nextBtn">
+                        Next →
+                    </button>
+                    <button type="submit" class="btn btn-primary" id="submitBtn" style="display: none;">
+                        🚀 Generate Options
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Results Card -->
+        <div class="results-card" id="resultsCard" style="display: none;">
+            <div class="results-header">
+                <h2>Your College Options</h2>
+                <button class="btn btn-secondary" id="resetBtn">New Search</button>
+            </div>
+
+            <div class="results-summary" id="resultsSummary"></div>
+
+            <div class="results-list" id="resultsList"></div>
+        </div>
+
+        <!-- Loading Overlay -->
+        <div class="loading-overlay" id="loadingOverlay">
+            <div class="spinner"></div>
+            <p>Generating your options...</p>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>

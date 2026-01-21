@@ -36,6 +36,9 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Serve static files from public directory
+app.use(express.static('public'));
+
 // Request logging middleware
 app.use((req: Request, res: Response, next) => {
     console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);

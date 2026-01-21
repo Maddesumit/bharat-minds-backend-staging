@@ -25,6 +25,30 @@ export interface CreateCourseDTO {
 }
 
 /**
+ * Get all courses
+ */
+export async function getAllCourses() {
+    try {
+        const documents = await databases.listDocuments(
+            config.databaseId,
+            config.collections.collegeCourses
+        );
+
+        return {
+            success: true,
+            data: documents.documents,
+            total: documents.total,
+        };
+    } catch (error: any) {
+        console.error('Get all courses error:', error);
+        return {
+            success: false,
+            error: error.message || 'Failed to get courses',
+        };
+    }
+}
+
+/**
  * Get courses by college
  */
 export async function getCoursesByCollege(collegeId: string) {
