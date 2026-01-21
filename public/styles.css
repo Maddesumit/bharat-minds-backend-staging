@@ -317,6 +317,14 @@ select:disabled {
     margin-bottom: 25px;
 }
 
+/* Grid layout for special categories */
+.checkbox-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+    margin-bottom: 25px;
+}
+
 .checkbox-card {
     display: block;
     position: relative;
@@ -363,6 +371,56 @@ select:disabled {
 .checkbox-content small {
     color: #718096;
     font-size: 13px;
+}
+
+/* Smaller variant for special categories grid */
+.checkbox-card-small {
+    display: block;
+    position: relative;
+    cursor: pointer;
+}
+
+.checkbox-card-small input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+}
+
+.checkbox-card-small .checkbox-content {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    background: white;
+    transition: all 0.3s ease;
+}
+
+.checkbox-card-small input[type="checkbox"]:checked+.checkbox-content {
+    border-color: #667eea;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+}
+
+.checkbox-icon-small {
+    font-size: 20px;
+    transition: transform 0.3s ease;
+}
+
+.checkbox-card-small input[type="checkbox"]:checked+.checkbox-content .checkbox-icon-small {
+    transform: scale(1.15);
+}
+
+.checkbox-card-small .checkbox-content strong {
+    display: block;
+    color: #2d3748;
+    font-size: 13px;
+    margin-bottom: 1px;
+    font-weight: 600;
+}
+
+.checkbox-card-small .checkbox-content small {
+    color: #718096;
+    font-size: 11px;
 }
 
 /* ============================================================================

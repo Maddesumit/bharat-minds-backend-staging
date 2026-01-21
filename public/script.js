@@ -34,6 +34,17 @@ const claimSNQNo = document.getElementById('claimSNQNo');
 const snqIncomeSlabGroup = document.getElementById('snqIncomeSlabGroup');
 const snqIncomeSlab = document.getElementById('snqIncomeSlab');
 
+// Special categories
+const aglCategory = document.getElementById('aglCategory');
+const capCategory = document.getElementById('capCategory');
+const defCategory = document.getElementById('defCategory');
+const jkCategory = document.getElementById('jkCategory');
+const nccCategory = document.getElementById('nccCategory');
+const phCategory = document.getElementById('phCategory');
+const sgCategory = document.getElementById('sgCategory');
+const spoCategory = document.getElementById('spoCategory');
+const xdCategory = document.getElementById('xdCategory');
+
 const eligibleCategoriesBox = document.getElementById('eligibleCategoriesBox');
 const eligibleCategoriesList = document.getElementById('eligibleCategoriesList');
 
@@ -92,6 +103,17 @@ attendedPracticalNo.addEventListener('change', handlePracticalAttendance);
 claimSNQYes.addEventListener('change', handleSNQClaim);
 claimSNQNo.addEventListener('change', handleSNQClaim);
 snqIncomeSlab.addEventListener('change', updateEligibleCategories);
+
+// Special categories handlers
+aglCategory.addEventListener('change', updateEligibleCategories);
+capCategory.addEventListener('change', updateEligibleCategories);
+defCategory.addEventListener('change', updateEligibleCategories);
+jkCategory.addEventListener('change', updateEligibleCategories);
+nccCategory.addEventListener('change', updateEligibleCategories);
+phCategory.addEventListener('change', updateEligibleCategories);
+sgCategory.addEventListener('change', updateEligibleCategories);
+spoCategory.addEventListener('change', updateEligibleCategories);
+xdCategory.addEventListener('change', updateEligibleCategories);
 
 prevBtn.addEventListener('click', previousStep);
 nextBtn.addEventListener('click', nextStep);
@@ -221,6 +243,19 @@ function updateEligibleCategories() {
     // Get SNQ slab if claimed
     const snqSlab = (claimSNQYes.checked && snqIncomeSlab.value) ? snqIncomeSlab.value : null;
 
+    // Get selected special categories
+    const specialCategories = {
+        agl: aglCategory.checked,
+        cap: capCategory.checked,
+        def: defCategory.checked,
+        jk: jkCategory.checked,
+        ncc: nccCategory.checked,
+        ph: phCategory.checked,
+        sg: sgCategory.checked,
+        spo: spoCategory.checked,
+        xd: xdCategory.checked
+    };
+
     const categories = generateEligibleCategories({
         baseCategory: baseCategory.value,
         reservations: {
@@ -228,7 +263,8 @@ function updateEligibleCategories() {
             rural: ruralReservation.checked,
             hyderabadKarnataka: hkReservation.checked
         },
-        snqSlab: snqSlab
+        snqSlab: snqSlab,
+        specialCategories: specialCategories
     });
 
     eligibleCategoriesList.innerHTML = '';
@@ -245,7 +281,7 @@ function updateEligibleCategories() {
 // ============================================================================
 // GENERATE ELIGIBLE CATEGORIES (Karnataka Rules)
 // ============================================================================
-function generateEligibleCategories({ baseCategory, reservations, snqSlab }) {
+function generateEligibleCategories({ baseCategory, reservations, snqSlab, specialCategories }) {
     const categories = new Set();
 
     // EVERYONE is eligible for GM (General Merit) based on rank!
@@ -312,6 +348,15 @@ function generateEligibleCategories({ baseCategory, reservations, snqSlab }) {
                 categories.add(baseCategory + 'RH');
             }
         }
+    }
+
+    // Add special categories if selected
+    if (specialCategories) {
+        Object.keys(specialCategories).forEach(key => {
+            if (specialCategories[key]) {
+                categories.add(key.toUpperCase());
+            }
+        });
     }
 
     // Add SNQ category if applicable (Engineering only)
