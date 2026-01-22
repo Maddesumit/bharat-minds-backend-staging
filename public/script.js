@@ -173,11 +173,20 @@ function handleCourseCategoryChange() {
         standardRankGroup.style.display = 'none';
         dualRankGroup.style.display = 'block';
         generalMeritRank.value = '';
+        generalMeritRank.required = false;
     } else {
         standardRankGroup.style.display = 'block';
         dualRankGroup.style.display = 'none';
+        generalMeritRank.required = true;
+
+        // Clear dual rank fields and reset required states
         theoryRank.value = '';
         practicalRank.value = '';
+        practicalRank.required = false;  // Important: clear required
+        attendedPracticalYes.checked = false;
+        attendedPracticalNo.checked = false;
+        practicalRankGroup.style.display = 'none';
+        practicalNotAttendedMsg.style.display = 'none';
     }
 }
 
@@ -296,17 +305,11 @@ function generateEligibleCategories({ baseCategory, reservations, snqSlab, speci
     if (reservations.kannada) {
         categories.add('GMK');
 
-        if (reservations.rural) {
-            categories.add('GMKR');
-        }
-
         if (reservations.hyderabadKarnataka) {
             categories.add('GMKH');
         }
 
-        if (reservations.rural && reservations.hyderabadKarnataka) {
-            categories.add('GMKRH');
-        }
+        // Note: GMKR and GMKRH combinations are not valid in Karnataka counselling
     }
 
     if (reservations.hyderabadKarnataka) {
@@ -332,13 +335,7 @@ function generateEligibleCategories({ baseCategory, reservations, snqSlab, speci
                 categories.add(baseCategory + 'KH');
             }
 
-            if (reservations.rural) {
-                categories.add(baseCategory + 'KR');
-
-                if (reservations.hyderabadKarnataka) {
-                    categories.add(baseCategory + 'KRH');
-                }
-            }
+            // Note: KR and KRH combinations are not valid in Karnataka counselling
         }
 
         if (reservations.rural) {
@@ -487,19 +484,52 @@ async function handleFormSubmit(e) {
         formData.generalMeritRank = parseInt(generalMeritRank.value);
     }
 
+    // Add special categories
+    const specialCategories = {
+        agl: aglCategory.checked,
+        cap: capCategory.checked,
+        def: defCategory.checked,
+        jk: jkCategory.checked,
+        ncc: nccCategory.checked,
+        ph: phCategory.checked,
+        sg: sgCategory.checked,
+        spo: spoCategory.checked,
+        xd: xdCategory.checked
+    };
+
+    // Add SNQ slab if claimed
+    if (claimSNQYes.checked && snqIncomeSlab.value) {
+        formData.snqSlab = snqIncomeSlab.value;
+    }
+
+    // Add special categories
+    formData.specialCategories = specialCategories;
+
     // Show loading
     loadingOverlay.classList.add('active');
 
     try {
-        // Simulate API call (replace with actual API)
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        // Save to backend
+        const response = await fetch(`${API_BASE_URL}/student-ranks`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(formData)
+        });
 
-        // For now, show mock results
-        displayResults(formData);
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+            throw new Error(result.error || 'Failed to save data');
+        }
+
+        // Success! Show results with saved ID
+        displayResults(formData, result.data.$id);
 
     } catch (error) {
         console.error('Error:', error);
-        alert('Failed to generate options. Please try again.');
+        alert(`Failed to save your data: ${error.message}\n\nPlease try again.`);
     } finally {
         loadingOverlay.classList.remove('active');
     }
@@ -508,10 +538,12 @@ async function handleFormSubmit(e) {
 // ============================================================================
 // DISPLAY RESULTS
 // ============================================================================
-function displayResults(formData) {
+function displayResults(formData, savedId) {
     const eligibleCategories = generateEligibleCategories({
         baseCategory: formData.baseCategory,
-        reservations: formData.reservations
+        reservations: formData.reservations,
+        specialCategories: formData.specialCategories,
+        snqSlab: formData.snqSlab
     });
 
     // Hide form, show results
@@ -520,6 +552,16 @@ function displayResults(formData) {
 
     // Summary
     resultsSummary.innerHTML = `
+        <div style="background: linear-gradient(135deg, #e6fffa, #d0f4de); padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 2px solid #48bb78;">
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+                <span style="font-size: 32px;">✅</span>
+                <h3 style="color: #22543d; margin: 0;">Data Saved Successfully!</h3>
+            </div>
+            <p style="color: #2f855a; margin: 0;">
+                <strong>Record ID:</strong> <code style="background: white; padding: 4px 8px; border-radius: 4px; font-family: monospace; color: #1a202c;">${savedId}</code>
+            </p>
+        </div>
+        
         <h3 style="color: #2d3748; margin-bottom: 15px;">Search Criteria</h3>
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
             <div>

@@ -8,6 +8,7 @@ import { validateConnection } from './config/appwrite.config';
 import authRoutes from './routes/auth.routes';
 import userRoutes from './routes/user.routes';
 import ranksRoutes from './routes/ranks.routes';
+import studentRankRoutes from './routes/student-rank.routes';
 import collegeRoutes from './routes/college.routes';
 import courseRoutes from './routes/course.routes';
 import preferenceRoutes from './routes/preference.routes';
@@ -62,6 +63,7 @@ app.get('/health', (req: Request, res: Response) => {
 // BHARAT MINDS API routes
 app.use('/api/users', userRoutes);
 app.use('/api/ranks', ranksRoutes);
+app.use('/api/student-ranks', studentRankRoutes);
 app.use('/api/colleges', collegeRoutes);
 app.use('/api/courses', courseRoutes);
 app.use('/api/preferences', preferenceRoutes);
