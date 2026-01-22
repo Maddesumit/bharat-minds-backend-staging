@@ -48,14 +48,9 @@ const successCard = document.getElementById('successCard');
 // INITIALIZATION
 // ============================================================================
 async function initialize() {
-    // Load colleges and courses from API
     await loadColleges();
     await loadCourses();
-
-    // Populate cities datalist
     populateCities();
-
-    // Setup event listeners
     setupEventListeners();
 }
 
@@ -71,16 +66,12 @@ async function loadColleges() {
         if (data.success && data.data) {
             state.colleges = data.data;
             console.log(`✅ Loaded ${state.colleges.length} colleges from Appwrite`);
-
-            if (state.colleges.length === 0) {
-                console.warn('⚠️ No colleges found in database');
-            }
         } else {
             throw new Error('Invalid API response format');
         }
     } catch (error) {
         console.error('❌ Failed to load colleges:', error);
-        alert('Could not load colleges from database. Please refresh the page or contact support.');
+        alert('Could not load colleges from database.');
         state.colleges = [];
     }
 }
@@ -95,15 +86,17 @@ async function loadCourses() {
             state.courses = data.data;
             console.log(`✅ Loaded ${state.courses.length} courses from Appwrite`);
 
-            if (state.courses.length === 0) {
-                console.warn('⚠️ No courses found in database');
+            // Show sample course structure for debugging
+            if (state.courses.length > 0) {
+                console.log('Sample course structure:', state.courses[0]);
+                console.log('Available fields:', Object.keys(state.courses[0]));
             }
         } else {
             throw new Error('Invalid API response format');
         }
     } catch (error) {
         console.error('❌ Failed to load courses:', error);
-        alert('Could not load courses from database. Please refresh the page or contact support.');
+        alert('Could not load courses from database.');
         state.courses = [];
     }
 }
@@ -120,29 +113,21 @@ function populateCities() {
 // EVENT LISTENERS
 // ============================================================================
 function setupEventListeners() {
-    // College search
     collegeSearch.addEventListener('input', handleCollegeSearch);
     collegeSearch.addEventListener('focus', handleCollegeSearch);
 
-    // Course search
     courseSearch.addEventListener('input', handleCourseSearch);
     courseSearch.addEventListener('focus', handleCourseSearch);
 
-    // Location selection
     locationSearch.addEventListener('keypress', handleLocationKeypress);
 
-    // Clear button
     clearBtn.addEventListener('click', clearAllPreferences);
-
-    // Form submission
     form.addEventListener('submit', handleFormSubmit);
 
-    // Event delegation for dynamic elements
     selectedCollegesDiv.addEventListener('click', handleRemoveClick);
     selectedCoursesDiv.addEventListener('click', handleRemoveClick);
     selectedLocationsDiv.addEventListener('click', handleRemoveClick);
 
-    // Close dropdowns when clicking outside
     document.addEventListener('click', (e) => {
         if (!e.target.closest('.search-box')) {
             collegeResults.classList.remove('active');
@@ -151,7 +136,6 @@ function setupEventListeners() {
     });
 }
 
-// Handle remove button clicks using event delegation
 function handleRemoveClick(e) {
     if (e.target.classList.contains('remove-item')) {
         const type = e.target.dataset.type;
@@ -182,7 +166,7 @@ function handleCollegeSearch() {
         const code = (college.collegeCode || '').toLowerCase();
         const name = (college.collegeName || '').toLowerCase();
         return code.includes(query) || name.includes(query);
-    }).slice(0, 10); // Limit to 10 results
+    }).slice(0, 10);
 
     displayCollegeResults(filtered);
 }
@@ -207,27 +191,17 @@ function displayCollegeResults(colleges) {
 
     collegeResults.classList.add('active');
 
-    // Add click listeners to results
     collegeResults.querySelectorAll('.search-result-item').forEach(item => {
         item.addEventListener('click', () => {
-            selectCollege(
-                item.dataset.id,
-                item.dataset.code,
-                item.dataset.name
-            );
+            selectCollege(item.dataset.id, item.dataset.code, item.dataset.name);
         });
     });
 }
 
 function selectCollege(id, code, name) {
-    const college = { id, code, name };
+    if (state.selectedColleges.find(c => c.id === id)) return;
 
-    // Check if already selected
-    if (state.selectedColleges.find(c => c.id === id)) {
-        return;
-    }
-
-    state.selectedColleges.push(college);
+    state.selectedColleges.push({ id, code, name });
     renderSelectedColleges();
 
     collegeSearch.value = '';
@@ -254,7 +228,7 @@ function renderSelectedColleges() {
 }
 
 // ============================================================================
-// COURSE SEARCH
+// COURSE SEARCH - FIXED VERSION
 // ============================================================================
 function handleCourseSearch() {
     const query = courseSearch.value.trim().toLowerCase();
@@ -264,55 +238,61 @@ function handleCourseSearch() {
         return;
     }
 
+    console.log(`🔍 Searching courses for: "${query}"`);
+
     const filtered = state.courses.filter(course => {
-        const code = (course.branchCode || '').toLowerCase();
-        const name = (course.branchName || course.courseType || '').toLowerCase();
-        return code.includes(query) || name.includes(query);
+        // Try ALL possible field names to be flexible
+        const code = String(course.branchCode || course.courseCode || course.courseType || '').toLowerCase();
+        const name = String(course.branchName || course.courseName || course.courseType || '').toLowerCase();
+        const type = String(course.courseType || '').toLowerCase();
+        const collegeName = String(course.collegeName || '').toLowerCase();
+
+        const matches = code.includes(query) || name.includes(query) || type.includes(query) || collegeName.includes(query);
+        return matches;
     }).slice(0, 10);
+
+    console.log(`✅ Found ${filtered.length} matching courses`);
 
     displayCourseResults(filtered);
 }
 
 function displayCourseResults(courses) {
     if (courses.length === 0) {
-        courseResults.innerHTML = '<div class="no-results">No courses found</div>';
+        courseResults.innerHTML = '<div class="no-results">No courses found. Try different keywords.</div>';
         courseResults.classList.add('active');
         return;
     }
 
-    courseResults.innerHTML = courses.map(course => `
+    courseResults.innerHTML = courses.map(course => {
+        // Flexible field extraction
+        const code = course.branchCode || course.courseCode || course.courseType || 'N/A';
+        const name = course.branchName || course.courseName || course.courseType || 'Unnamed Course';
+
+        return `
         <div class="search-result-item" 
              data-type="course"
-             data-id="${course.$id || course.branchCode}"
-             data-code="${escapeHtml(course.branchCode || course.courseType)}"
-             data-name="${escapeHtml(course.branchName || course.courseType)}">
-            <div class="result-code">${course.branchCode || course.courseType}</div>
-            <div class="result-name">${course.branchName || course.courseType}</div>
+             data-id="${course.$id || course.branchCode || course.courseCode || Math.random()}"
+             data-code="${escapeHtml(String(code))}"
+             data-name="${escapeHtml(String(name))}">
+            <div class="result-code">${escapeHtml(String(code))}</div>
+            <div class="result-name">${escapeHtml(String(name))}</div>
         </div>
-    `).join('');
+    `;
+    }).join('');
 
     courseResults.classList.add('active');
 
-    // Add click listeners to results
     courseResults.querySelectorAll('.search-result-item').forEach(item => {
         item.addEventListener('click', () => {
-            selectCourse(
-                item.dataset.id,
-                item.dataset.code,
-                item.dataset.name
-            );
+            selectCourse(item.dataset.id, item.dataset.code, item.dataset.name);
         });
     });
 }
 
 function selectCourse(id, code, name) {
-    const course = { id, code, name };
+    if (state.selectedCourses.find(c => c.id === id)) return;
 
-    if (state.selectedCourses.find(c => c.id === id)) {
-        return;
-    }
-
-    state.selectedCourses.push(course);
+    state.selectedCourses.push({ id, code, name });
     renderSelectedCourses();
 
     courseSearch.value = '';
@@ -353,9 +333,7 @@ function handleLocationKeypress(e) {
 }
 
 function selectLocation(location) {
-    if (state.selectedLocations.includes(location)) {
-        return;
-    }
+    if (state.selectedLocations.includes(location)) return;
 
     state.selectedLocations.push(location);
     renderSelectedLocations();
@@ -387,40 +365,58 @@ function renderSelectedLocations() {
 async function handleFormSubmit(e) {
     e.preventDefault();
 
-    // Validate
-    if (state.selectedColleges.length === 0 && state.selectedCourses.length === 0) {
+    if (
+        state.selectedColleges.length === 0 &&
+        state.selectedCourses.length === 0
+    ) {
         alert('Please select at least one college or course');
         return;
     }
 
-    // Collect form data
     const preferences = {
-        colleges: state.selectedColleges.map(c => ({ code: c.code, name: c.name })),
-        courses: state.selectedCourses.map(c => ({ code: c.code, name: c.name })),
+        colleges: state.selectedColleges.map(c => ({
+            code: c.code,
+            name: c.name
+        })),
+        courses: state.selectedCourses.map(c => ({
+            code: c.code,
+            name: c.name
+        })),
         locations: state.selectedLocations,
         collegeTypes: getSelectedCheckboxes(['typeGovt', 'typeVTU', 'typeAuton', 'typePrivateUniv', 'typeDeemed']),
         seatTypes: getSelectedCheckboxes(['seatGovt', 'seatPrivate', 'seatMang', 'seatNRI'])
     };
 
-    // Show loading
+    console.log('📤 PAYLOAD SENT →', preferences);
+
     loadingOverlay.classList.add('active');
 
     try {
         const response = await fetch(`${API_BASE_URL}/preferences`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(preferences)
         });
 
-        const result = await response.json();
+        const raw = await response.text();
+        let result;
 
-        if (!response.ok || !result.success) {
-            throw new Error(result.error || 'Failed to save preferences');
+        try {
+            result = JSON.parse(raw);
+        } catch {
+            result = { raw };
         }
 
-        // Show success
+        console.log('📥 BACKEND RESPONSE →', result);
+
+        if (!response.ok) {
+            throw new Error(
+                result.error ||
+                result.message ||
+                JSON.stringify(result)
+            );
+        }
+
         document.querySelector('.form-card').style.display = 'none';
         successCard.style.display = 'block';
         document.getElementById('preferenceId').textContent = result.data.$id;
@@ -428,12 +424,13 @@ async function handleFormSubmit(e) {
         window.scrollTo({ top: 0, behavior: 'smooth' });
 
     } catch (error) {
-        console.error('Error:', error);
-        alert(`Failed to save preferences: ${error.message}\n\nPlease try again.`);
+        console.error('❌ FINAL ERROR →', error.message);
+        alert(`Failed to save preferences:\n\n${error.message}`);
     } finally {
         loadingOverlay.classList.remove('active');
     }
 }
+
 
 function getSelectedCheckboxes(ids) {
     return ids
@@ -444,9 +441,6 @@ function getSelectedCheckboxes(ids) {
         .filter(v => v !== null);
 }
 
-// ============================================================================
-// CLEAR ALL
-// ============================================================================
 function clearAllPreferences() {
     if (confirm('Are you sure you want to clear all preferences?')) {
         state.selectedColleges = [];
@@ -461,9 +455,6 @@ function clearAllPreferences() {
     }
 }
 
-// ============================================================================
-// UTILITY FUNCTIONS
-// ============================================================================
 function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;

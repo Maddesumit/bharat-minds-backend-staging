@@ -10,6 +10,9 @@ const router = Router();
  */
 router.post('/', async (req: Request, res: Response) => {
     try {
+        console.log('📥 Received preferences POST request');
+        console.log('Request body:', JSON.stringify(req.body, null, 2));
+
         const {
             colleges,
             courses,
@@ -18,26 +21,26 @@ router.post('/', async (req: Request, res: Response) => {
             seatTypes
         } = req.body;
 
-        // Validate required fields
-        if (!colleges && !courses) {
+        // ✅ CORRECT VALIDATION
+        if (
+            (!Array.isArray(colleges) || colleges.length === 0) &&
+            (!Array.isArray(courses) || courses.length === 0)
+        ) {
+            console.log('❌ Validation failed: No colleges or courses selected');
             return res.status(400).json({
                 success: false,
                 error: 'At least one college or course preference is required'
             });
         }
 
-        // Generate a temporary userId for anonymous submissions
+        // Generate anonymous userId
         const userId = ID.unique();
-        const counsellingType = 'UGCET'; // Default, can be dynamic
+        const counsellingType = 'UGCET';
 
-        // Generate timestamps
-        const now = new Date().toISOString();
+        // Prepare options list
+        const options: any[] = [];
 
-        // Prepare options data (list of preferences)
-        const options = [];
-
-        // If colleges selected, create preferences for them
-        if (colleges && colleges.length > 0) {
+        if (Array.isArray(colleges) && colleges.length > 0) {
             colleges.forEach((college: any, index: number) => {
                 options.push({
                     rank: index + 1,
@@ -49,9 +52,8 @@ router.post('/', async (req: Request, res: Response) => {
             });
         }
 
-        // If courses selected, add them
-        if (courses && courses.length > 0) {
-            courses.forEach((course: any, index: number) => {
+        if (Array.isArray(courses) && courses.length > 0) {
+            courses.forEach((course: any) => {
                 options.push({
                     rank: options.length + 1,
                     collegeCode: '',
@@ -62,37 +64,54 @@ router.post('/', async (req: Request, res: Response) => {
             });
         }
 
-        // Create document matching Appwrite schema
+        // ✅ SAFETY CHECK
+        if (options.length === 0) {
+            return res.status(400).json({
+                success: false,
+                error: 'No valid preferences generated'
+            });
+        }
+
+        const now = new Date().toISOString();
+
+        const preferencesData = {
+            counsellingType,
+            colleges: colleges || [],
+            courses: courses || [],
+            locations: locations || [],
+            collegeTypes: collegeTypes || [],
+            seatTypes: seatTypes || [],
+            options,
+            totalOptions: options.length,
+            isLocked: false,
+            lastModified: now
+        };
+
+        console.log('📦 Preferences to save:', JSON.stringify(preferencesData, null, 2));
+
         const document = await databases.createDocument(
             config.databaseId,
             config.collections.userPreferences,
             ID.unique(),
             {
-                userId: userId,
-                counsellingType: counsellingType,
-                options: JSON.stringify(options), // Array of preferences
-                totalOptions: options.length,
-                isLocked: false,
-                lastModified: now,
-
-                // Store additional filter data as JSON
-                filters: JSON.stringify({
-                    locations: locations || [],
-                    collegeTypes: collegeTypes || [],
-                    seatTypes: seatTypes || []
-                })
+                userId,
+                preferences: JSON.stringify(preferencesData),
+                createdAt: now,
+                updatedAt: now
             }
         );
 
-        res.status(201).json({
+        console.log('✅ Preferences saved:', document.$id);
+
+        return res.status(201).json({
             success: true,
             data: document,
             message: 'Preferences saved successfully'
         });
 
     } catch (error: any) {
-        console.error('Save preferences error:', error);
-        res.status(500).json({
+        console.error('❌ Save preferences error:', error);
+        return res.status(500).json({
             success: false,
             error: error.message || 'Failed to save preferences'
         });
@@ -100,7 +119,7 @@ router.post('/', async (req: Request, res: Response) => {
 });
 
 /**
- * Get user preferences
+ * Get preferences
  * GET /api/preferences/:id
  */
 router.get('/:id', async (req: Request, res: Response) => {
@@ -111,16 +130,15 @@ router.get('/:id', async (req: Request, res: Response) => {
             req.params.id
         );
 
-        // Parse JSON data
-        const options = document.options ? JSON.parse(document.options as string) : [];
-        const filters = document.filters ? JSON.parse(document.filters as string) : {};
+        const parsedPreferences = document.preferences
+            ? JSON.parse(document.preferences as string)
+            : {};
 
         res.json({
             success: true,
             data: {
                 ...document,
-                options,
-                filters
+                preferences: parsedPreferences
             }
         });
 
@@ -134,82 +152,7 @@ router.get('/:id', async (req: Request, res: Response) => {
 });
 
 /**
- * Update user preferences
- * PUT /api/preferences/:id
- */
-router.put('/:id', async (req: Request, res: Response) => {
-    try {
-        const {
-            colleges,
-            courses,
-            locations,
-            collegeTypes,
-            seatTypes
-        } = req.body;
-
-        // Prepare updated options
-        const options = [];
-
-        if (colleges && colleges.length > 0) {
-            colleges.forEach((college: any, index: number) => {
-                options.push({
-                    rank: index + 1,
-                    collegeCode: college.code,
-                    collegeName: college.name,
-                    courseCode: '',
-                    branch: ''
-                });
-            });
-        }
-
-        if (courses && courses.length > 0) {
-            courses.forEach((course: any, index: number) => {
-                options.push({
-                    rank: options.length + 1,
-                    collegeCode: '',
-                    collegeName: '',
-                    courseCode: course.code,
-                    branch: course.name
-                });
-            });
-        }
-
-        const now = new Date().toISOString();
-
-        // Update document
-        const document = await databases.updateDocument(
-            config.databaseId,
-            config.collections.userPreferences,
-            req.params.id,
-            {
-                options: JSON.stringify(options),
-                totalOptions: options.length,
-                lastModified: now,
-                filters: JSON.stringify({
-                    locations: locations || [],
-                    collegeTypes: collegeTypes || [],
-                    seatTypes: seatTypes || []
-                })
-            }
-        );
-
-        res.json({
-            success: true,
-            data: document,
-            message: 'Preferences updated successfully'
-        });
-
-    } catch (error: any) {
-        console.error('Update preferences error:', error);
-        res.status(500).json({
-            success: false,
-            error: error.message || 'Failed to update preferences'
-        });
-    }
-});
-
-/**
- * Delete user preferences
+ * Delete preferences
  * DELETE /api/preferences/:id
  */
 router.delete('/:id', async (req: Request, res: Response) => {
