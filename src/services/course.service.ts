@@ -4,7 +4,7 @@
  * Handles course availability queries and seat type validation
  */
 
-import { ID } from 'node-appwrite';
+import { ID, Query } from 'node-appwrite';
 import { databases, config } from '../config/appwrite.config';
 import { SeatType, CounsellingType, UGCETCourseType, UGNEETCourseType, CourseAvailability } from '../types/domain.types';
 
@@ -29,9 +29,11 @@ export interface CreateCourseDTO {
  */
 export async function getAllCourses() {
     try {
+        // Fetch ALL courses (default limit is 25, we need all 200+)
         const documents = await databases.listDocuments(
             config.databaseId,
-            config.collections.collegeCourses
+            config.collections.collegeCourses,
+            [Query.limit(5000)] // Get all courses (max 5000)
         );
 
         return {

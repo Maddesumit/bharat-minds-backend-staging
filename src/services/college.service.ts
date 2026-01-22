@@ -5,7 +5,7 @@
  * Optimized for fast lookups using Appwrite indexes
  */
 
-import { ID, Models } from 'node-appwrite';
+import { ID, Models, Query } from 'node-appwrite';
 import { databases, config } from '../config/appwrite.config';
 import { College, CollegeType, CounsellingType, CollegeSearchFilters } from '../types/domain.types';
 
@@ -47,9 +47,11 @@ export interface CreateCollegeDTO {
  */
 export async function searchColleges(filters: CollegeSearchFilters) {
     try {
+       
         const documents = await databases.listDocuments(
             config.databaseId,
-            config.collections.colleges
+            config.collections.colleges,
+            [Query.limit(5000)] // Get all colleges (max 5000)
         );
 
         let results = documents.documents as CollegeDocument[];
@@ -109,7 +111,7 @@ export async function searchColleges(filters: CollegeSearchFilters) {
         return {
             success: true,
             data: parsed,
-            count: parsed.length,
+            total: parsed.length,
         };
     } catch (error: any) {
         console.error('Search colleges error:', error);
