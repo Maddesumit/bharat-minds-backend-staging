@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BharatMinds - Karnataka Counselling Option Generator</title>
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles-slabs.css">
 </head>
 
 <body>
@@ -347,12 +348,32 @@
                         <!-- SNQ Income Slab (shown only if claiming SNQ) -->
                         <div id="snqIncomeSlabGroup" class="form-group" style="display: none;">
                             <label for="snqIncomeSlab">Select Your Income Slab *</label>
-                            <select id="snqIncomeSlab">
-                                <option value="">Select Income Slab</option>
-                                <option value="SNQ1">SNQ-1: Below ₹1 lakh per annum</option>
-                                <option value="SNQ2">SNQ-2: ₹1 lakh to ₹1.5 lakh per annum</option>
-                                <option value="SNQ3">SNQ-3: ₹1.5 lakh to ₹2 lakh per annum</option>
-                            </select>
+
+                            <!-- Hidden input to store the selected value (maintains compatibility) -->
+                            <input type="hidden" id="snqIncomeSlab">
+
+                            <div class="slab-grid" id="slabGrid">
+                                <button type="button" class="slab-card" data-value="SNQ1">
+                                    <span>Slab 1: &lt; Rs 1 lakh</span>
+                                    <span class="arrow">&rsaquo;</span>
+                                </button>
+                                <button type="button" class="slab-card" data-value="SNQ2">
+                                    <span>Slab 2: Rs 1-2 lakh</span>
+                                    <span class="arrow">&rsaquo;</span>
+                                </button>
+                                <button type="button" class="slab-card" data-value="SNQ3">
+                                    <span>Slab 3: Rs 2-3 lakh</span>
+                                    <span class="arrow">&rsaquo;</span>
+                                </button>
+                                <button type="button" class="slab-card" data-value="SNQ4">
+                                    <span>Slab 4: Rs 3-4.5 lakh</span>
+                                    <span class="arrow">&rsaquo;</span>
+                                </button>
+                                <button type="button" class="slab-card" data-value="SNQ5">
+                                    <span>Slab 5: Rs 4.5-6 lakh</span>
+                                    <span class="arrow">&rsaquo;</span>
+                                </button>
+                            </div>
                             <small class="form-hint">Choose the slab matching your family's annual income</small>
                         </div>
                     </div>

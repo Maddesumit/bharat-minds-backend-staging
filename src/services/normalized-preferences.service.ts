@@ -6,17 +6,22 @@ import { databases, config } from '../config/appwrite.config';
  * This enables the dual-write migration strategy
  */
 
-interface PreferenceOption {
-    collegeCode: string;
-    collegeName: string;
-    courseCode: string;
-    branch: string;
+interface College {
+    id: string;        // Appwrite document ID
+    code: string;
+    name: string;
+}
+
+interface Course {
+    id: string;        // Appwrite document ID
+    code: string;
+    name: string;
 }
 
 interface SaveNormalizedPreferencesParams {
     userId: string;
-    colleges: any[];
-    courses: any[];
+    colleges: College[];
+    courses: Course[];
     locations?: string[];
     collegeTypes?: string[];
     seatTypes?: string[];
@@ -55,14 +60,33 @@ export async function saveNormalizedPreferences(params: SaveNormalizedPreference
                         {
                             userId,
                             preferenceRank: preferenceRank++,
+
+                            // College fields (REQUIRED)
+                            collegeId: college.id || '',  // ✅ Now included from frontend
                             collegeCode: college.code || '',
                             collegeName: college.name || '',
-                            branchCode: '', // Empty for college-only preferences
+
+                            // Branch fields (REQUIRED, empty for college-only prefs)
+                            branchId: '',
+                            branchCode: '',
                             branchName: '',
+
+                            // Filter fields (REQUIRED)
                             seatType: seatType,
-                            category: 'OPEN', // Default, can be customized
-                            preferenceType: 'college',
-                            isActive: true,
+                            category: 'OPEN',
+                            location: locations.length > 0 ? locations[0] : '',
+
+                            // Eligibility & Probability (optional, defaults)
+                            isEligible: false,
+                            eligibilityScore: 0,
+                            probabilityScore: 0,
+                            probabilityCategory: '',
+
+                            // Metadata (REQUIRED)
+                            counsellingType: 'UGCET',
+                            academicYear: new Date().getFullYear(),
+                            isLocked: false,
+
                             createdAt: new Date().toISOString(),
                             updatedAt: new Date().toISOString()
                         }
@@ -92,14 +116,33 @@ export async function saveNormalizedPreferences(params: SaveNormalizedPreference
                         {
                             userId,
                             preferenceRank: preferenceRank++,
-                            collegeCode: '', // Will be filled when we have college-course mapping
+
+                            // College fields (REQUIRED, empty for course-only prefs)
+                            collegeId: '',
+                            collegeCode: '',
                             collegeName: '',
-                            branchCode: course.code || course.branchCode || '',
-                            branchName: course.name || course.branchName || '',
+
+                            // Branch fields (REQUIRED)
+                            branchId: course.id || '',  // ✅ Now included from frontend
+                            branchCode: course.code || '',
+                            branchName: course.name || '',
+
+                            // Filter fields (REQUIRED)
                             seatType: seatType,
                             category: 'OPEN',
-                            preferenceType: 'course',
-                            isActive: true,
+                            location: locations.length > 0 ? locations[0] : '',
+
+                            // Eligibility & Probability (optional, defaults)
+                            isEligible: false,
+                            eligibilityScore: 0,
+                            probabilityScore: 0,
+                            probabilityCategory: '',
+
+                            // Metadata (REQUIRED)
+                            counsellingType: 'UGCET',
+                            academicYear: new Date().getFullYear(),
+                            isLocked: false,
+
                             createdAt: new Date().toISOString(),
                             updatedAt: new Date().toISOString()
                         }

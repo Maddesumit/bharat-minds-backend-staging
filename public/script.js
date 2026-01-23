@@ -115,6 +115,21 @@ sgCategory.addEventListener('change', updateEligibleCategories);
 spoCategory.addEventListener('change', updateEligibleCategories);
 xdCategory.addEventListener('change', updateEligibleCategories);
 
+// Slab Button Logic
+const slabButtons = document.querySelectorAll('.slab-card');
+slabButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+        // Deselect all
+        slabButtons.forEach(b => b.classList.remove('selected'));
+        // Select clicked
+        btn.classList.add('selected');
+        // Update hidden input
+        snqIncomeSlab.value = btn.dataset.value;
+        // Trigger change event manually
+        snqIncomeSlab.dispatchEvent(new Event('change'));
+    });
+});
+
 prevBtn.addEventListener('click', previousStep);
 nextBtn.addEventListener('click', nextStep);
 form.addEventListener('submit', handleFormSubmit);
@@ -234,7 +249,7 @@ function handleSNQClaim() {
         // Hide income slab and clear selection
         snqIncomeSlabGroup.style.display = 'none';
         snqIncomeSlab.required = false;
-        snqIncomeSlab.value = '';
+        clearSlabSelection();
     }
     // Update eligible categories whenever SNQ status changes
     updateEligibleCategories();
@@ -447,6 +462,12 @@ function validateCurrentStep() {
             alert('Please select your category');
             valid = false;
         }
+
+        // Validate SNQ Slab if claimed (since hidden input required attribute is ignored)
+        if (claimSNQYes.checked && !snqIncomeSlab.value) {
+            alert('Please select your Income Slab');
+            valid = false;
+        }
     }
 
     return valid;
@@ -609,7 +630,17 @@ function resetForm() {
     resultsCard.style.display = 'none';
     courseCategory.disabled = true;
     branchGroup.style.display = 'none';
+    courseCategory.disabled = true;
+    branchGroup.style.display = 'none';
+    clearSlabSelection();
     window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function clearSlabSelection() {
+    snqIncomeSlab.value = '';
+    document.querySelectorAll('.slab-card').forEach(btn => btn.classList.remove('selected'));
+    // Trigger change to update categories
+    snqIncomeSlab.dispatchEvent(new Event('change'));
 }
 
 // ============================================================================

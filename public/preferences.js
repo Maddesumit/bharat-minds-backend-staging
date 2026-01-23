@@ -383,10 +383,12 @@ async function handleFormSubmit(e) {
 
     const preferences = {
         colleges: state.selectedColleges.map(c => ({
+            id: c.id,      // Include Appwrite document ID
             code: c.code,
             name: c.name
         })),
         courses: state.selectedCourses.map(c => ({
+            id: c.id,      // Include Appwrite document ID
             code: c.code,
             name: c.name
         })),
