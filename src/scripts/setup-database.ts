@@ -47,14 +47,14 @@ async function createCollection(collectionId: string, collectionName: string): P
                 'delete("users")'
             ]
         );
-        console.log(`✅ Created collection: ${collectionName} (${collectionId})`);
+        console.log(` Created collection: ${collectionName} (${collectionId})`);
         return true;
     } catch (error: any) {
         if (error.code === 409) {
             console.log(`⏭️  Collection already exists: ${collectionName} (${collectionId})`);
             return true;
         }
-        console.error(`❌ Failed to create collection ${collectionName}:`, error.message);
+        console.error(` Failed to create collection ${collectionName}:`, error.message);
         return false;
     }
 }
@@ -152,14 +152,14 @@ async function createAttribute(
                 return false;
         }
 
-        console.log(`   ✅ Created attribute: ${key} (${type})`);
+        console.log(`    Created attribute: ${key} (${type})`);
         return true;
     } catch (error: any) {
         if (error.code === 409) {
             console.log(`   ⏭️  Attribute already exists: ${attribute.key}`);
             return true;
         }
-        console.error(`   ❌ Failed to create attribute ${attribute.key}:`, error.message);
+        console.error(`    Failed to create attribute ${attribute.key}:`, error.message);
         return false;
     }
 }
@@ -185,14 +185,14 @@ async function createIndex(
             index.attributes
         );
 
-        console.log(`   ✅ Created index: ${index.key} (${index.type})`);
+        console.log(`    Created index: ${index.key} (${index.type})`);
         return true;
     } catch (error: any) {
         if (error.code === 409) {
             console.log(`   ⏭️  Index already exists: ${index.key}`);
             return true;
         }
-        console.error(`   ❌ Failed to create index ${index.key}:`, error.message);
+        console.error(`    Failed to create index ${index.key}:`, error.message);
         return false;
     }
 }
@@ -229,13 +229,13 @@ async function setupCollection(schema: {
     await delay(3000);
 
     // Step 4: Create indexes
-    console.log(`\n📊 Creating ${schema.indexes.length} indexes...`);
+    console.log(`\n Creating ${schema.indexes.length} indexes...`);
     for (const idx of schema.indexes) {
         await createIndex(schema.collectionId, idx);
         await delay(500); // Delay between index creations
     }
 
-    console.log(`\n✅ Completed setup for: ${schema.collectionName}`);
+    console.log(`\n Completed setup for: ${schema.collectionName}`);
     return true;
 }
 
@@ -254,7 +254,7 @@ async function setupDatabase() {
 
     // Validate configuration
     if (!process.env.APPWRITE_PROJECT_ID || !process.env.APPWRITE_API_KEY) {
-        console.error('❌ Missing required environment variables!');
+        console.error(' Missing required environment variables!');
         console.error('   Please set APPWRITE_PROJECT_ID and APPWRITE_API_KEY in .env');
         process.exit(1);
     }
@@ -280,7 +280,7 @@ async function setupDatabase() {
                 failCount++;
             }
         } catch (error) {
-            console.error(`❌ Failed to setup ${schema.collectionName}:`, error);
+            console.error(` Failed to setup ${schema.collectionName}:`, error);
             failCount++;
         }
     }
@@ -289,9 +289,9 @@ async function setupDatabase() {
     console.log('\n' + '='.repeat(60));
     console.log('SETUP COMPLETE');
     console.log('='.repeat(60));
-    console.log(`\n✅ Successfully setup: ${successCount} collections`);
+    console.log(`\n Successfully setup: ${successCount} collections`);
     if (failCount > 0) {
-        console.log(`❌ Failed: ${failCount} collections`);
+        console.log(` Failed: ${failCount} collections`);
     }
     console.log('\nYour Appwrite database is ready to use!');
     console.log('');

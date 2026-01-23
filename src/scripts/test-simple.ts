@@ -5,7 +5,7 @@
 import { databases, config } from '../config/appwrite.config';
 
 console.log('='.repeat(80));
-console.log('✅ TESTING WITH YOUR EXISTING CONFIG');
+console.log(' TESTING WITH YOUR EXISTING CONFIG');
 console.log('='.repeat(80));
 
 console.log('\nConfiguration:');
@@ -26,14 +26,14 @@ async function testCollections() {
 
     for (const [name, collectionId] of collections) {
         try {
-            console.log(`\n📋 ${name} (${collectionId})...`);
+            console.log(`\n ${name} (${collectionId})...`);
 
             const response = await databases.listDocuments(
                 config.databaseId,
                 collectionId
             );
 
-            console.log(`   ✅ Success! Found ${response.total} documents`);
+            console.log(`    Success! Found ${response.total} documents`);
 
             if (response.documents.length > 0) {
                 console.log(`   First document ID: ${response.documents[0].$id}`);
@@ -52,18 +52,18 @@ async function testCollections() {
             }
 
         } catch (error: any) {
-            console.log(`   ❌ Error: ${error.message}`);
+            console.log(`    Error: ${error.message}`);
             if (error.code) console.log(`   Code: ${error.code}`);
             if (error.type) console.log(`   Type: ${error.type}`);
         }
     }
 
     console.log('\n' + '='.repeat(80));
-    console.log('✅ Test Complete');
+    console.log(' Test Complete');
     console.log('='.repeat(80) + '\n');
 }
 
 testCollections().catch(error => {
-    console.error('\n❌ Fatal error:', error.message);
+    console.error('\n Fatal error:', error.message);
     process.exit(1);
 });

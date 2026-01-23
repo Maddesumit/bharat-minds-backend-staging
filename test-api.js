@@ -32,17 +32,17 @@ async function testEndpoint(method, endpoint, body = null) {
         const data = await response.json();
 
         if (response.ok) {
-            console.log(`✅ Status: ${response.status} ${response.statusText}`);
+            console.log(` Status: ${response.status} ${response.statusText}`);
             console.log('Response:', JSON.stringify(data, null, 2));
         } else {
-            console.log(`❌ Status: ${response.status} ${response.statusText}`);
+            console.log(` Status: ${response.status} ${response.statusText}`);
             console.log('Error:', JSON.stringify(data, null, 2));
         }
 
         return { success: response.ok, data };
 
     } catch (error) {
-        console.log(`❌ Error: ${error.message}`);
+        console.log(` Error: ${error.message}`);
         return { success: false, error: error.message };
     }
 }
@@ -144,8 +144,8 @@ async function runTests() {
     console.log('\n' + '='.repeat(80));
     console.log('TEST SUMMARY');
     console.log('='.repeat(80));
-    console.log(`✅ Passed: ${passCount}`);
-    console.log(`❌ Failed: ${failCount}`);
+    console.log(` Passed: ${passCount}`);
+    console.log(` Failed: ${failCount}`);
     console.log(`Total: ${passCount + failCount}`);
     console.log('='.repeat(80));
 

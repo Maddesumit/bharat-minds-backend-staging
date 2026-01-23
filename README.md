@@ -326,7 +326,7 @@ console.log(data);
 
 ---
 
-## 📊 Error Handling
+##  Error Handling
 
 All API responses follow a consistent format:
 

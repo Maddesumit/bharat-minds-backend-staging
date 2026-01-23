@@ -8,7 +8,10 @@
         "build": "tsc",
         "start": "node dist/index.js",
         "test": "jest",
-        "setup:db": "ts-node src/scripts/setup-database.ts"
+        "setup:db": "ts-node src/scripts/setup-database.ts",
+        "setup:normalized": "ts-node src/scripts/setup-normalized-schema-v2.ts",
+        "validate:dual-write": "ts-node src/scripts/validate-dual-write.ts",
+        "validate:user": "ts-node src/scripts/validate-dual-write.ts --userId"
     },
     "keywords": [
         "appwrite",

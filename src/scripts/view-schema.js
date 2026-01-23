@@ -36,7 +36,7 @@ async function viewSchema() {
             console.log(`   Enabled: ${col.enabled}`);
 
             // Show attributes
-            console.log(`\n   📋 Attributes (${col.attributes.length} fields):`);
+            console.log(`\n    Attributes (${col.attributes.length} fields):`);
 
             if (col.attributes.length === 0) {
                 console.log('      No attributes defined');
@@ -61,11 +61,11 @@ async function viewSchema() {
         }
 
         console.log('\n' + '='.repeat(80));
-        console.log('✅ Schema inspection complete!');
+        console.log(' Schema inspection complete!');
         console.log('='.repeat(80) + '\n');
 
     } catch (error) {
-        console.error('❌ Error:', error.message);
+        console.error(' Error:', error.message);
         if (error.code) console.error('Error Code:', error.code);
         if (error.type) console.error('Error Type:', error.type);
         throw error;
@@ -74,8 +74,8 @@ async function viewSchema() {
 
 // Run the function
 viewSchema()
-    .then(() => console.log('✅ Done!\n'))
+    .then(() => console.log(' Done!\n'))
     .catch(error => {
-        console.error('\n❌ Failed:', error.message);
+        console.error('\n Failed:', error.message);
         process.exit(1);
     });

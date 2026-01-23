@@ -110,7 +110,7 @@ console.log('='.repeat(80));
 
 const allBases = ['GM', '1', '2A', '2B', '3A', '3B', 'SC', 'ST'];
 
-console.log('\n📊 Results:\n');
+console.log('\n Results:\n');
 allBases.forEach(base => {
     const categories = generateEligibleCategories(base, true, true, true);
     console.log(`${base.padEnd(4)} → ${categories.join(', ')}`);
@@ -170,7 +170,7 @@ students.forEach((student, i) => {
 });
 
 console.log('='.repeat(80));
-console.log('✅ DEMO COMPLETED!');
+console.log(' DEMO COMPLETED!');
 console.log('='.repeat(80));
 
 console.log('\n💡 Next Steps:');

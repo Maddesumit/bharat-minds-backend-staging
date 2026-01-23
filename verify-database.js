@@ -19,7 +19,7 @@ const databaseId = process.env.APPWRITE_DATABASE_ID || '';
 
 async function verifyAll() {
     console.log('\n' + '='.repeat(80));
-    console.log('📊 BHARAT MINDS - DATABASE VERIFICATION');
+    console.log(' BHARAT MINDS - DATABASE VERIFICATION');
     console.log('='.repeat(80));
     console.log(`\nDatabase ID: ${databaseId}\n`);
 
@@ -39,12 +39,12 @@ async function verifyAll() {
     for (const coll of collections) {
         try {
             const response = await databases.listDocuments(databaseId, coll.id);
-            const status = response.total > 0 ? '✅' : '⚠️ ';
-            const emoji = response.total > 0 ? '📊' : '📭';
+            const status = response.total > 0 ? '' : '⚠️ ';
+            const emoji = response.total > 0 ? '' : '📭';
 
             console.log(`${status} ${emoji} ${coll.name.padEnd(20)} : ${response.total.toString().padStart(4)} documents`);
         } catch (error) {
-            console.log(`❌ ⚠️  ${coll.name.padEnd(20)} : ERROR (${error.message})`);
+            console.log(` ⚠️  ${coll.name.padEnd(20)} : ERROR (${error.message})`);
         }
     }
 
@@ -58,7 +58,7 @@ async function verifyAll() {
             console.log('   📥 Import colleges:');
             console.log('      npx ts-node src/scripts/import-csv-data.ts\n');
         } else {
-            console.log(`   ✅ Colleges imported: ${colleges.total}\n`);
+            console.log(`    Colleges imported: ${colleges.total}\n`);
         }
     } catch (e) { }
 
@@ -69,7 +69,7 @@ async function verifyAll() {
             console.log('   📥 Import courses:');
             console.log('      npx ts-node src/scripts/import-csv-data1-FIXED.ts\n');
         } else {
-            console.log(`   ✅ Courses imported: ${courses.total}\n`);
+            console.log(`    Courses imported: ${courses.total}\n`);
         }
     } catch (e) { }
 
@@ -80,17 +80,17 @@ async function verifyAll() {
             console.log('   ⚠️  Cutoff data needed for option generation!');
             console.log('      This is required to match ranks with colleges.\n');
         } else {
-            console.log(`   ✅ Cutoff data imported: ${cutoffs.total}\n`);
+            console.log(`    Cutoff data imported: ${cutoffs.total}\n`);
         }
     } catch (e) { }
 
     console.log('='.repeat(80));
-    console.log('✅ Verification complete!');
+    console.log(' Verification complete!');
     console.log('='.repeat(80));
     console.log('\n🌐 View in Appwrite Console: https://cloud.appwrite.io/console\n');
 }
 
 verifyAll().catch(error => {
-    console.error('\n❌ Error:', error.message);
+    console.error('\n Error:', error.message);
     process.exit(1);
 });

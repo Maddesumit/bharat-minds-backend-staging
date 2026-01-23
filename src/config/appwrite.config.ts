@@ -55,7 +55,7 @@ export async function validateConnection(): Promise<boolean> {
             throw new Error('Appwrite is not configured properly');
         }
 
-        console.log('✅ Appwrite credentials configured:');
+        console.log(' Appwrite credentials configured:');
         console.log(`   - Endpoint: ${config.endpoint}`);
         console.log(`   - Project ID: ${config.projectId}`);
         console.log(`   - Database ID: ${config.databaseId}`);

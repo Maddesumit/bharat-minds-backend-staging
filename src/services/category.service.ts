@@ -16,19 +16,19 @@ export function generateEligibleCategories(
     const categories: Set<CategoryVariant> = new Set();
     const orderedCategories: CategoryVariant[] = [];
 
-   
+
     const basePrefix = baseCategory === BaseCategory.GM
         ? 'GM'
         : baseCategory.slice(0, -1); // Remove trailing 'G'
 
-   
+
     const base = baseCategory;
     if (!categories.has(base)) {
         categories.add(base);
         orderedCategories.push(base);
     }
 
-  
+
     if (flags.hasKannada) {
         const kannadaVariant = baseCategory === BaseCategory.GM
             ? 'GMK'
@@ -40,7 +40,7 @@ export function generateEligibleCategories(
         }
     }
 
-   
+
     if (flags.hasRural) {
         const ruralVariant = baseCategory === BaseCategory.GM
             ? 'GMR'
@@ -67,7 +67,7 @@ export function generateEligibleCategories(
         }
     }
 
-   
+
 
     return orderedCategories;
 }
@@ -166,12 +166,12 @@ export function runTests(): boolean {
         const passed = JSON.stringify(result) === JSON.stringify(testCase.expected);
 
         if (!passed) {
-            console.error(`❌ Test ${testName} failed:`);
+            console.error(` Test ${testName} failed:`);
             console.error(`Expected: ${testCase.expected.join(', ')}`);
             console.error(`Got: ${result.join(', ')}`);
             allTestsPassed = false;
         } else {
-            console.log(`✅ Test ${testName} passed`);
+            console.log(` Test ${testName} passed`);
         }
     }
 

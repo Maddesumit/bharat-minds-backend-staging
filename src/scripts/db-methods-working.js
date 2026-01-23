@@ -22,14 +22,14 @@ client
     .setProject(process.env.APPWRITE_PROJECT_ID || '')
     .setKey(process.env.APPWRITE_API_KEY || '');
 
-console.log('\n✅ Client initialized');
+console.log('\n Client initialized');
 console.log('   Endpoint:', process.env.APPWRITE_ENDPOINT);
 
 // Create database instance
 const databases = new sdk.Databases(client);
 const databaseId = process.env.APPWRITE_DATABASE_ID || 'main_db';
 
-console.log('✅ Databases instance created');
+console.log(' Databases instance created');
 console.log('   Database ID:', databaseId);
 
 // ============================================================================
@@ -50,7 +50,7 @@ async function example1_ListAll() {
             collectionId
         );
 
-        console.log(`\n✅ Success! Found ${response.total} documents`);
+        console.log(`\n Success! Found ${response.total} documents`);
         if (response.documents.length > 0) {
             console.log(`   First document ID: ${response.documents[0].$id}`);
             console.log(`   Showing first 3:`)
@@ -62,7 +62,7 @@ async function example1_ListAll() {
 
         return response;
     } catch (error) {
-        console.error('\n❌ Error:', error.message);
+        console.error('\n Error:', error.message);
         if (error.code) console.error('   Code:', error.code);
         if (error.type) console.error('   Type:', error.type);
         return null;
@@ -94,7 +94,7 @@ async function example2_GetDocument() {
             docId
         );
 
-        console.log(`\n✅ Success! Document retrieved:`);
+        console.log(`\n Success! Document retrieved:`);
         console.log(`   ID: ${document.$id}`);
         console.log(`   Created: ${new Date(document.$createdAt).toLocaleString()}`);
 
@@ -107,7 +107,7 @@ async function example2_GetDocument() {
 
         return document;
     } catch (error) {
-        console.error('\n❌ Error:', error.message);
+        console.error('\n Error:', error.message);
         return null;
     }
 }
@@ -136,14 +136,14 @@ async function example3_CreateDocument() {
             data
         );
 
-        console.log(`\n✅ Success! Document created:`);
+        console.log(`\n Success! Document created:`);
         console.log(`   ID: ${document.$id}`);
         console.log(`   User ID: ${document.userId}`);
         console.log(`   Rank: ${document.generalMeritRank}`);
 
         return document;
     } catch (error) {
-        console.error('\n❌ Error:', error.message);
+        console.error('\n Error:', error.message);
         if (error.code) console.error('   Code:', error.code);
         return null;
     }
@@ -168,13 +168,13 @@ async function example4_UpdateDocument(documentId) {
             }
         );
 
-        console.log(`\n✅ Success! Document updated:`);
+        console.log(`\n Success! Document updated:`);
         console.log(`   ID: ${document.$id}`);
         console.log(`   New Rank: ${document.generalMeritRank}`);
 
         return document;
     } catch (error) {
-        console.error('\n❌ Error:', error.message);
+        console.error('\n Error:', error.message);
         return null;
     }
 }
@@ -194,12 +194,12 @@ async function example5_DeleteDocument(documentId) {
             documentId
         );
 
-        console.log(`\n✅ Success! Document deleted:`);
+        console.log(`\n Success! Document deleted:`);
         console.log(`   ID: ${documentId}`);
 
         return true;
     } catch (error) {
-        console.error('\n❌ Error:', error.message);
+        console.error('\n Error:', error.message);
         return false;
     }
 }
@@ -220,9 +220,9 @@ async function example6_CountDocuments() {
     for (const [name, collectionId] of Object.entries(collections)) {
         try {
             const response = await databases.listDocuments(databaseId, collectionId);
-            console.log(`✅ ${name.padEnd(20)}: ${response.total} documents`);
+            console.log(` ${name.padEnd(20)}: ${response.total} documents`);
         } catch (error) {
-            console.log(`❌ ${name.padEnd(20)}: Error - ${error.message}`);
+            console.log(` ${name.padEnd(20)}: Error - ${error.message}`);
         }
     }
 }
@@ -262,7 +262,7 @@ async function main() {
     */
 
     console.log('\n' + '='.repeat(80));
-    console.log('✅ ALL EXAMPLES COMPLETED!');
+    console.log(' ALL EXAMPLES COMPLETED!');
     console.log('='.repeat(80));
     console.log('\n💡 SDK v11 works without query arrays in basic calls');
     console.log('💡 For filtering, use Query helper in a future version\n');
@@ -270,6 +270,6 @@ async function main() {
 
 // Run
 main().catch(error => {
-    console.error('\n❌ Fatal error:', error);
+    console.error('\n Fatal error:', error);
     process.exit(1);
 });

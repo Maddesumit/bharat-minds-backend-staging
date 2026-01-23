@@ -9,11 +9,11 @@ const { parse } = require('csv-parse/sync');
 
 function inspectCSV(filePath, filename) {
     console.log('\n' + '='.repeat(80));
-    console.log(`📋 Inspecting: ${filename}`);
+    console.log(` Inspecting: ${filename}`);
     console.log('='.repeat(80));
 
     if (!fs.existsSync(filePath)) {
-        console.log(`❌ File not found: ${filePath}\n`);
+        console.log(` File not found: ${filePath}\n`);
         return;
     }
 
@@ -25,21 +25,21 @@ function inspectCSV(filePath, filename) {
     });
 
     if (rows.length === 0) {
-        console.log('❌ No data found in CSV\n');
+        console.log(' No data found in CSV\n');
         return;
     }
 
     // Get column names from first row
     const columns = Object.keys(rows[0]);
 
-    console.log(`\n✅ Found ${rows.length} rows`);
-    console.log(`✅ Found ${columns.length} columns:\n`);
+    console.log(`\n Found ${rows.length} rows`);
+    console.log(` Found ${columns.length} columns:\n`);
 
     columns.forEach((col, index) => {
         console.log(`   ${index + 1}. "${col}"`);
     });
 
-    console.log(`\n📊 Sample Data (First 3 rows):\n`);
+    console.log(`\n Sample Data (First 3 rows):\n`);
 
     for (let i = 0; i < Math.min(3, rows.length); i++) {
         console.log(`Row ${i + 1}:`);

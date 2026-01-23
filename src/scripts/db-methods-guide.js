@@ -31,7 +31,7 @@ client
     .setProject(process.env.APPWRITE_PROJECT_ID || '')
     .setKey(process.env.APPWRITE_API_KEY || '');
 
-console.log('\n✅ Step 1: Client initialized');
+console.log('\n Step 1: Client initialized');
 console.log('   Endpoint:', process.env.APPWRITE_ENDPOINT);
 console.log('   Project ID:', process.env.APPWRITE_PROJECT_ID);
 
@@ -40,7 +40,7 @@ const databases = new sdk.Databases(client);  // For database operations
 const users = new sdk.Users(client);          // For user management
 const storage = new sdk.Storage(client);      // For file storage
 
-console.log('\n✅ Step 2: Service instances created');
+console.log('\n Step 2: Service instances created');
 console.log('   - Databases service');
 console.log('   - Users service');
 console.log('   - Storage service');
@@ -48,14 +48,14 @@ console.log('   - Storage service');
 // Get your database ID
 const databaseId = process.env.APPWRITE_DATABASE_ID || 'main_db';
 
-console.log('\n✅ Step 3: Database ID configured:', databaseId);
+console.log('\n Step 3: Database ID configured:', databaseId);
 
 // ============================================================================
 // STEP 2: CALL SDK METHODS - EXAMPLES
 // ============================================================================
 
 console.log('\n' + '='.repeat(80));
-console.log('📋 CALLING SDK METHODS - EXAMPLES');
+console.log(' CALLING SDK METHODS - EXAMPLES');
 console.log('='.repeat(80));
 
 // ----------------------------------------------------------------------------
@@ -72,12 +72,12 @@ async function example1_ListDocuments() {
             collectionId
         );
 
-        console.log(`✅ Success! Found ${response.total} documents`);
+        console.log(` Success! Found ${response.total} documents`);
         console.log(`   First document ID: ${response.documents[0]?.$id || 'N/A'}`);
 
         return response;
     } catch (error) {
-        console.error('❌ Error:', error.message);
+        console.error(' Error:', error.message);
         return null;
     }
 }
@@ -100,14 +100,14 @@ async function example2_ListWithQueries() {
             ]
         );
 
-        console.log(`✅ Success! Retrieved ${response.documents.length} documents`);
+        console.log(` Success! Retrieved ${response.documents.length} documents`);
         response.documents.forEach((doc, i) => {
             console.log(`   ${i + 1}. Document ID: ${doc.$id}`);
         });
 
         return response;
     } catch (error) {
-        console.error('❌ Error:', error.message);
+        console.error(' Error:', error.message);
         return null;
     }
 }
@@ -127,13 +127,13 @@ async function example3_GetDocument(documentId) {
             documentId
         );
 
-        console.log('✅ Success! Document retrieved:');
+        console.log(' Success! Document retrieved:');
         console.log('   Document ID:', document.$id);
         console.log('   Created:', new Date(document.$createdAt).toLocaleString());
 
         return document;
     } catch (error) {
-        console.error('❌ Error:', error.message);
+        console.error(' Error:', error.message);
         return null;
     }
 }
@@ -160,13 +160,13 @@ async function example4_CreateDocument() {
             }
         );
 
-        console.log('✅ Success! Document created:');
+        console.log(' Success! Document created:');
         console.log('   Document ID:', document.$id);
         console.log('   User ID:', document.userId);
 
         return document;
     } catch (error) {
-        console.error('❌ Error:', error.message);
+        console.error(' Error:', error.message);
         return null;
     }
 }
@@ -190,13 +190,13 @@ async function example5_UpdateDocument(documentId) {
             }
         );
 
-        console.log('✅ Success! Document updated:');
+        console.log(' Success! Document updated:');
         console.log('   Document ID:', document.$id);
         console.log('   New Rank:', document.generalMeritRank);
 
         return document;
     } catch (error) {
-        console.error('❌ Error:', error.message);
+        console.error(' Error:', error.message);
         return null;
     }
 }
@@ -216,12 +216,12 @@ async function example6_DeleteDocument(documentId) {
             documentId
         );
 
-        console.log('✅ Success! Document deleted:');
+        console.log(' Success! Document deleted:');
         console.log('   Document ID:', documentId);
 
         return true;
     } catch (error) {
-        console.error('❌ Error:', error.message);
+        console.error(' Error:', error.message);
         return false;
     }
 }
@@ -245,14 +245,14 @@ async function example7_QueryWithFilters() {
             ]
         );
 
-        console.log(`✅ Success! Found ${response.documents.length} colleges in Bangalore`);
+        console.log(` Success! Found ${response.documents.length} colleges in Bangalore`);
         response.documents.forEach((doc, i) => {
             console.log(`   ${i + 1}. ${doc.collegeName || doc.$id}`);
         });
 
         return response;
     } catch (error) {
-        console.error('❌ Error:', error.message);
+        console.error(' Error:', error.message);
         return null;
     }
 }
@@ -272,12 +272,12 @@ async function example8_CountDocuments() {
             [sdk.Query.limit(1)]  // We only need the count
         );
 
-        console.log('✅ Success! Document count:');
+        console.log(' Success! Document count:');
         console.log('   Total documents:', response.total);
 
         return response.total;
     } catch (error) {
-        console.error('❌ Error:', error.message);
+        console.error(' Error:', error.message);
         return 0;
     }
 }
@@ -310,13 +310,13 @@ async function main() {
     */
 
     console.log('\n' + '='.repeat(80));
-    console.log('✅ ALL EXAMPLES COMPLETED!');
+    console.log(' ALL EXAMPLES COMPLETED!');
     console.log('='.repeat(80));
     console.log('\n💡 Tip: Uncomment the create/update/delete examples to test full CRUD.\n');
 }
 
 // Run the examples
 main().catch(error => {
-    console.error('\n❌ Fatal error:', error);
+    console.error('\n Fatal error:', error);
     process.exit(1);
 });

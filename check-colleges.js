@@ -20,7 +20,7 @@ const collegeCollectionId = process.env.APPWRITE_COLLEGES_COLLECTION_ID || 'coll
 
 async function checkColleges() {
     console.log('='.repeat(80));
-    console.log('📊 CHECKING COLLEGES DATA');
+    console.log(' CHECKING COLLEGES DATA');
     console.log('='.repeat(80));
 
     try {
@@ -29,17 +29,17 @@ async function checkColleges() {
             collegeCollectionId
         );
 
-        console.log(`\n✅ Total Colleges: ${response.total}\n`);
+        console.log(`\n Total Colleges: ${response.total}\n`);
 
         if (response.total === 0) {
-            console.log('❌ No colleges found. Import may have failed.');
+            console.log(' No colleges found. Import may have failed.');
             console.log('\n💡 To import colleges, run:');
             console.log('   npx ts-node src/scripts/import-csv-data.ts\n');
             return;
         }
 
         // Show first 10 colleges
-        console.log('📋 First 10 Colleges:\n');
+        console.log(' First 10 Colleges:\n');
         response.documents.slice(0, 10).forEach((college, index) => {
             console.log(`${index + 1}. ${college.collegeName}`);
             console.log(`   Code: ${college.collegeCode}`);
@@ -57,7 +57,7 @@ async function checkColleges() {
         });
 
         console.log('='.repeat(80));
-        console.log('📊 COLLEGES BY CITY');
+        console.log(' COLLEGES BY CITY');
         console.log('='.repeat(80));
         Object.entries(cities)
             .sort((a, b) => b[1] - a[1])
@@ -74,19 +74,19 @@ async function checkColleges() {
         });
 
         console.log('\n' + '='.repeat(80));
-        console.log('📊 COLLEGES BY TYPE');
+        console.log(' COLLEGES BY TYPE');
         console.log('='.repeat(80));
         Object.entries(types).forEach(([type, count]) => {
             console.log(`${type}: ${count} colleges`);
         });
 
         console.log('\n' + '='.repeat(80));
-        console.log('✅ Data check complete!');
+        console.log(' Data check complete!');
         console.log('='.repeat(80));
         console.log(`\n💡 To view all data: https://cloud.appwrite.io/console\n`);
 
     } catch (error) {
-        console.error('\n❌ Error:', error.message);
+        console.error('\n Error:', error.message);
         console.log('\n💡 Make sure:');
         console.log('   1. Server is running (npm run dev)');
         console.log('   2. Appwrite credentials are correct in .env');

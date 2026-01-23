@@ -1,0 +1,38 @@
+curl -X POST http://localhost:3001/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "test@example.com",
+    "password": "Test@123",
+    "name": "Test User",
+    "phone": "9876543210",
+    "college": "BMS College",
+    "city": "Bangalore",
+    "state": "Karnataka",
+    "examType": "UGCET"
+  }'
+
+  curl -X POST http://localhost:3001/api/users/calculate-eligibility \
+  -H "Content-Type: application/json" \
+  -d '{
+    "baseCategory": "2AG",
+    "hasKannada": true,
+    "hasRural": true,
+    "hasHK": true
+  }'
+
+# Expected: ["2AG", "2AK", "2AR", "2AH", "2AKH", "2ARH"]
+
+curl -X POST http://localhost:3001/api/preferences/save 
+  -H "Content-Type: application/json" 
+  -d '{
+    "userId": "696880f7002999b80fab01",
+    "examType": "UGCET",
+    "preferences": [
+      {
+        "collegeId": "696880f7002999b80fab01",
+        "courseId": "696880f7002999b80fab01",
+        "rank": 100,
+        "isLocked": false
+      }
+    ]
+  }'

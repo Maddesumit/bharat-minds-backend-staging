@@ -1,6 +1,7 @@
 import { Request, Response, Router } from 'express';
 import { ID } from 'node-appwrite';
 import { databases, config } from '../config/appwrite.config';
+import { saveNormalizedPreferences } from '../services/normalized-preferences.service';
 
 const router = Router();
 
@@ -21,12 +22,12 @@ router.post('/', async (req: Request, res: Response) => {
             seatTypes
         } = req.body;
 
-        // ✅ CORRECT VALIDATION
+        //  CORRECT VALIDATION
         if (
             (!Array.isArray(colleges) || colleges.length === 0) &&
             (!Array.isArray(courses) || courses.length === 0)
         ) {
-            console.log('❌ Validation failed: No colleges or courses selected');
+            console.log(' Validation failed: No colleges or courses selected');
             return res.status(400).json({
                 success: false,
                 error: 'At least one college or course preference is required'
@@ -64,7 +65,7 @@ router.post('/', async (req: Request, res: Response) => {
             });
         }
 
-        // ✅ SAFETY CHECK
+        //  SAFETY CHECK
         if (options.length === 0) {
             return res.status(400).json({
                 success: false,
@@ -89,7 +90,13 @@ router.post('/', async (req: Request, res: Response) => {
 
         console.log('📦 Preferences to save:', JSON.stringify(preferencesData, null, 2));
 
-        const document = await databases.createDocument(
+        // ============================================
+        // DUAL-WRITE IMPLEMENTATION
+        // Write to BOTH old and new schemas for migration
+        // ============================================
+
+        // 1️⃣ Write to OLD schema (user_preferences) - JSON format
+        const legacyDocument = await databases.createDocument(
             config.databaseId,
             config.collections.userPreferences,
             ID.unique(),
@@ -101,16 +108,48 @@ router.post('/', async (req: Request, res: Response) => {
             }
         );
 
-        console.log('✅ Preferences saved:', document.$id);
+        console.log('✅ [LEGACY] Preferences saved:', legacyDocument.$id);
 
+        // 2️⃣ Write to NEW schema (student_preferences_v2) - Normalized format
+        let normalizedResult;
+        try {
+            normalizedResult = await saveNormalizedPreferences({
+                userId,
+                colleges: colleges || [],
+                courses: courses || [],
+                locations: locations || [],
+                collegeTypes: collegeTypes || [],
+                seatTypes: seatTypes || []
+            });
+
+            console.log('✅ [NORMALIZED] Saved', normalizedResult.count, 'preference documents');
+
+        } catch (normalizedError: any) {
+            // Non-blocking: If normalized save fails, log but don't fail the request
+            console.warn('⚠️  [NORMALIZED] Failed to save (non-blocking):', normalizedError.message);
+            normalizedResult = {
+                success: false,
+                error: normalizedError.message
+            };
+        }
+
+        // ============================================
+        // Return success with metadata from both writes
+        // ============================================
         return res.status(201).json({
             success: true,
-            data: document,
+            data: legacyDocument,
+            normalized: {
+                enabled: true,
+                saved: normalizedResult?.success || false,
+                count: normalizedResult?.count || 0,
+                error: (normalizedResult as any)?.error
+            },
             message: 'Preferences saved successfully'
         });
 
     } catch (error: any) {
-        console.error('❌ Save preferences error:', error);
+        console.error(' Save preferences error:', error);
         return res.status(500).json({
             success: false,
             error: error.message || 'Failed to save preferences'

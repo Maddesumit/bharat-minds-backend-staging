@@ -48,7 +48,7 @@ async function importCourses() {
     const csvPath = path.join(process.cwd(), 'unique_courses(Sheet1).csv');
 
     if (!fs.existsSync(csvPath)) {
-        console.error(`❌ CSV file not found: ${csvPath}`);
+        console.error(` CSV file not found: ${csvPath}`);
         console.log('📝 Please place your CSV file in the project root with name: unique_courses(Sheet1).csv');
         return;
     }
@@ -65,7 +65,7 @@ async function importCourses() {
         collegeMap.set(college.collegeCode.trim(), college);
     });
 
-    console.log(`✅ Loaded ${collegeMap.size} colleges from database\n`);
+    console.log(` Loaded ${collegeMap.size} colleges from database\n`);
 
     let success = 0, skipped = 0, failed = 0;
 
@@ -127,9 +127,9 @@ async function importCourses() {
     console.log(`\n${'='.repeat(80)}`);
     console.log('IMPORT SUMMARY');
     console.log('='.repeat(80));
-    console.log(`✅ Successfully imported: ${success}`);
+    console.log(` Successfully imported: ${success}`);
     console.log(`⏭️  Skipped: ${skipped}`);
-    console.log(`❌ Failed: ${failed}`);
+    console.log(` Failed: ${failed}`);
     console.log('='.repeat(80));
 }
 
@@ -139,11 +139,11 @@ async function main() {
     console.log('='.repeat(80));
 
     if (!isAppwriteConfigured()) {
-        console.error('❌ Appwrite not configured (.env missing or incomplete)');
+        console.error(' Appwrite not configured (.env missing or incomplete)');
         process.exit(1);
     }
 
-    console.log('✅ Appwrite configured');
+    console.log(' Appwrite configured');
     console.log(`   Database ID: ${config.databaseId}`);
     console.log(`   Collection: ${config.collections.collegeCourses}\n`);
 

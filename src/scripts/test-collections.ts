@@ -105,7 +105,7 @@ async function testCollection(collection: CollectionInfo): Promise<{
  * Display collection test results
  */
 function displayResults(collection: CollectionInfo, result: any) {
-    const statusIcon = result.success ? '✅' : '❌';
+    const statusIcon = result.success ? '' : '';
     const statusColor = result.success ? colors.green : colors.red;
 
     console.log(`\n${statusColor}${statusIcon} ${collection.name}${colors.reset}`);
@@ -149,13 +149,13 @@ function displaySummary(results: any[]) {
     console.log(`\n${'='.repeat(60)}`);
     console.log(`${colors.bold}${colors.blue}SUMMARY${colors.reset}`);
     console.log(`${'='.repeat(60)}`);
-    console.log(`${colors.green}✅ Successful:${colors.reset} ${successful}/${collections.length}`);
+    console.log(`${colors.green} Successful:${colors.reset} ${successful}/${collections.length}`);
 
     if (failed > 0) {
-        console.log(`${colors.red}❌ Failed:${colors.reset} ${failed}/${collections.length}`);
+        console.log(`${colors.red} Failed:${colors.reset} ${failed}/${collections.length}`);
     }
 
-    console.log(`${colors.cyan}📊 Total Documents:${colors.reset} ${totalDocs}`);
+    console.log(`${colors.cyan} Total Documents:${colors.reset} ${totalDocs}`);
     console.log(`${'='.repeat(60)}\n`);
 }
 
@@ -172,7 +172,7 @@ async function main() {
     const isConnected = await validateConnection();
 
     if (!isConnected) {
-        console.log(`\n${colors.red}❌ Failed to connect to Appwrite${colors.reset}`);
+        console.log(`\n${colors.red} Failed to connect to Appwrite${colors.reset}`);
         console.log(`${colors.yellow}Please check your .env configuration:${colors.reset}`);
         console.log(`   - APPWRITE_ENDPOINT=${config.endpoint}`);
         console.log(`   - APPWRITE_PROJECT_ID=${config.projectId}`);
@@ -180,7 +180,7 @@ async function main() {
         process.exit(1);
     }
 
-    console.log(`${colors.green}✅ Connection validated${colors.reset}\n`);
+    console.log(`${colors.green} Connection validated${colors.reset}\n`);
 
     // Test each collection
     console.log(`${colors.cyan}Testing collections...${colors.reset}`);
@@ -198,10 +198,10 @@ async function main() {
     // Exit with appropriate code
     const allSuccessful = results.every(r => r.success);
     if (allSuccessful) {
-        console.log(`${colors.green}${colors.bold}✅ All collections are accessible!${colors.reset}\n`);
+        console.log(`${colors.green}${colors.bold} All collections are accessible!${colors.reset}\n`);
         process.exit(0);
     } else {
-        console.log(`${colors.red}${colors.bold}❌ Some collections failed. Check errors above.${colors.reset}\n`);
+        console.log(`${colors.red}${colors.bold} Some collections failed. Check errors above.${colors.reset}\n`);
         process.exit(1);
     }
 }

@@ -11,7 +11,7 @@ import { ID, Query } from 'node-appwrite';
 // EXAMPLE 1: List all colleges
 // ================================================================================
 export async function example1_ListColleges() {
-    console.log('\n📋 Example 1: List All Colleges\n');
+    console.log('\n Example 1: List All Colleges\n');
 
     try {
         const response = await databases.listDocuments(
@@ -32,7 +32,7 @@ export async function example1_ListColleges() {
 
         return response.documents;
     } catch (error: any) {
-        console.error('❌ Error:', error.message);
+        console.error(' Error:', error.message);
         return [];
     }
 }
@@ -58,7 +58,7 @@ export async function example2_SearchByCity(city: string) {
 
         return response.documents;
     } catch (error: any) {
-        console.error('❌ Error:', error.message);
+        console.error(' Error:', error.message);
         return [];
     }
 }
@@ -67,7 +67,7 @@ export async function example2_SearchByCity(city: string) {
 // EXAMPLE 3: Get student ranks for a user
 // ================================================================================
 export async function example3_GetStudentRanks(userId: string) {
-    console.log(`\n📊 Example 3: Get Ranks for User ${userId}\n`);
+    console.log(`\n Example 3: Get Ranks for User ${userId}\n`);
 
     try {
         const response = await databases.listDocuments(
@@ -93,7 +93,7 @@ export async function example3_GetStudentRanks(userId: string) {
 
         return response.documents;
     } catch (error: any) {
-        console.error('❌ Error:', error.message);
+        console.error(' Error:', error.message);
         return [];
     }
 }
@@ -122,14 +122,14 @@ export async function example4_CreateRank(rankData: {
             }
         );
 
-        console.log('✅ Rank created successfully!');
+        console.log(' Rank created successfully!');
         console.log(`   Document ID: ${document.$id}`);
         console.log(`   User: ${rankData.userId}`);
         console.log(`   Course: ${rankData.courseCategory}`);
 
         return document;
     } catch (error: any) {
-        console.error('❌ Error:', error.message);
+        console.error(' Error:', error.message);
         return null;
     }
 }
@@ -138,7 +138,7 @@ export async function example4_CreateRank(rankData: {
 // EXAMPLE 5: Get cutoff data for a rank
 // ================================================================================
 export async function example5_GetCutoffData(courseCategory: string, maxRank: number) {
-    console.log(`\n🎯 Example 5: Get Cutoffs for ${courseCategory} (Rank <= ${maxRank})\n`);
+    console.log(`\n Example 5: Get Cutoffs for ${courseCategory} (Rank <= ${maxRank})\n`);
 
     try {
         const response = await databases.listDocuments(
@@ -163,7 +163,7 @@ export async function example5_GetCutoffData(courseCategory: string, maxRank: nu
 
         return response.documents;
     } catch (error: any) {
-        console.error('❌ Error:', error.message);
+        console.error(' Error:', error.message);
         return [];
     }
 }
@@ -189,7 +189,7 @@ export async function example6_GetAllCities() {
 
         return cities;
     } catch (error: any) {
-        console.error('❌ Error:', error.message);
+        console.error(' Error:', error.message);
         return [];
     }
 }
@@ -198,7 +198,7 @@ export async function example6_GetAllCities() {
 // EXAMPLE 7: Count documents in each collection
 // ================================================================================
 export async function example7_CountAllCollections() {
-    console.log('\n📊 Example 7: Count Documents in All Collections\n');
+    console.log('\n Example 7: Count Documents in All Collections\n');
 
     const collections = {
         'User Profiles': config.collections.userProfiles,

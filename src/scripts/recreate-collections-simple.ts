@@ -157,12 +157,12 @@ async function recreateCollections() {
                 coll.name,
                 ['read("any")', 'create("users")', 'update("users")', 'delete("users")']
             );
-            console.log(`✅ Collection created: ${coll.id}`);
+            console.log(` Collection created: ${coll.id}`);
         } catch (error: any) {
             if (error.code === 409) {
                 console.log(`⏭️  Collection already exists: ${coll.id}`);
             } else {
-                console.error(`❌ Error creating collection: ${error.message}`);
+                console.error(` Error creating collection: ${error.message}`);
                 continue;
             }
         }
@@ -196,13 +196,13 @@ async function recreateCollections() {
                         attr.required || false
                     );
                 }
-                console.log(`   ✅ ${attr.key}`);
+                console.log(`    ${attr.key}`);
                 await delay(300);
             } catch (error: any) {
                 if (error.code === 409) {
                     console.log(`   ⏭️  ${attr.key} (exists)`);
                 } else {
-                    console.log(`   ❌ ${attr.key}: ${error.message}`);
+                    console.log(`    ${attr.key}: ${error.message}`);
                 }
             }
         }
@@ -222,22 +222,22 @@ async function recreateCollections() {
                     idx.type as any,
                     idx.attributes
                 );
-                console.log(`   ✅ ${idx.key}`);
+                console.log(`    ${idx.key}`);
                 await delay(500);
             } catch (error: any) {
                 if (error.code === 409) {
                     console.log(`   ⏭️  ${idx.key} (exists)`);
                 } else {
-                    console.log(`   ❌ ${idx.key}: ${error.message}`);
+                    console.log(`    ${idx.key}: ${error.message}`);
                 }
             }
         }
 
-        console.log(`\n✅ Completed: ${coll.name}`);
+        console.log(`\n Completed: ${coll.name}`);
     }
 
     console.log('\n' + '='.repeat(80));
-    console.log('✅ ALL COLLECTIONS RECREATED!');
+    console.log(' ALL COLLECTIONS RECREATED!');
     console.log('='.repeat(80));
     console.log('\n💡 Next steps:');
     console.log('   1. Verify collections in Appwrite Console');
@@ -249,6 +249,6 @@ async function recreateCollections() {
 recreateCollections()
     .then(() => process.exit(0))
     .catch(error => {
-        console.error('\n❌ Fatal error:', error.message);
+        console.error('\n Fatal error:', error.message);
         process.exit(1);
     });

@@ -29,9 +29,9 @@ async function quickTest() {
                 collectionId,
                 [Query.limit(1)]
             );
-            console.log(`✅ ${name}: ${result.total} documents`);
+            console.log(` ${name}: ${result.total} documents`);
         } catch (error: any) {
-            console.log(`❌ ${name}: ERROR - ${error.message}`);
+            console.log(` ${name}: ERROR - ${error.message}`);
         }
     }
 

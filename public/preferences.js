@@ -65,12 +65,12 @@ async function loadColleges() {
 
         if (data.success && data.data) {
             state.colleges = data.data;
-            console.log(`✅ Loaded ${state.colleges.length} colleges from Appwrite`);
+            console.log(` Loaded ${state.colleges.length} colleges from Appwrite`);
         } else {
             throw new Error('Invalid API response format');
         }
     } catch (error) {
-        console.error('❌ Failed to load colleges:', error);
+        console.error(' Failed to load colleges:', error);
         alert('Could not load colleges from database.');
         state.colleges = [];
     }
@@ -84,7 +84,7 @@ async function loadCourses() {
 
         if (data.success && data.data) {
             state.courses = data.data;
-            console.log(`✅ Loaded ${state.courses.length} courses from Appwrite`);
+            console.log(` Loaded ${state.courses.length} courses from Appwrite`);
 
             // Show sample course structure for debugging
             if (state.courses.length > 0) {
@@ -95,7 +95,7 @@ async function loadCourses() {
             throw new Error('Invalid API response format');
         }
     } catch (error) {
-        console.error('❌ Failed to load courses:', error);
+        console.error(' Failed to load courses:', error);
         alert('Could not load courses from database.');
         state.courses = [];
     }
@@ -251,7 +251,7 @@ function handleCourseSearch() {
         return matches;
     }).slice(0, 10);
 
-    console.log(`✅ Found ${filtered.length} matching courses`);
+    console.log(` Found ${filtered.length} matching courses`);
 
     displayCourseResults(filtered);
 }

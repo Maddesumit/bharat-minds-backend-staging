@@ -161,12 +161,12 @@ async function startServer() {
         const isConnected = await validateConnection();
 
         if (!isConnected) {
-            console.error('❌ Failed to connect to Appwrite');
+            console.error(' Failed to connect to Appwrite');
             console.error('Please check your environment variables');
             process.exit(1);
         }
 
-        console.log('✅ Appwrite connection validated');
+        console.log(' Appwrite connection validated');
 
         // Start server
         app.listen(PORT, () => {

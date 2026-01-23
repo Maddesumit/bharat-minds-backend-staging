@@ -70,7 +70,7 @@ async function deleteAllCollections() {
     const confirm1 = await askQuestion('\n❓ Are you ABSOLUTELY sure you want to proceed? (type "DELETE" to confirm): ');
 
     if (confirm1 !== 'DELETE') {
-        console.log('\n✅ Operation cancelled. No changes made.');
+        console.log('\n Operation cancelled. No changes made.');
         rl.close();
         return;
     }
@@ -79,7 +79,7 @@ async function deleteAllCollections() {
     const confirm2 = await askQuestion('\n❓ Last chance! Type "YES DELETE EVERYTHING" to proceed: ');
 
     if (confirm2 !== 'YES DELETE EVERYTHING') {
-        console.log('\n✅ Operation cancelled. No changes made.');
+        console.log('\n Operation cancelled. No changes made.');
         rl.close();
         return;
     }
@@ -98,24 +98,24 @@ async function deleteAllCollections() {
                 collection.id
             );
 
-            console.log(`   ✅ Deleted successfully`);
+            console.log(`    Deleted successfully`);
             successCount++;
 
         } catch (error) {
-            console.log(`   ❌ Error: ${error.message}`);
+            console.log(`    Error: ${error.message}`);
             errorCount++;
         }
     }
 
     console.log('\n' + '='.repeat(80));
-    console.log('📊 DELETION SUMMARY');
+    console.log(' DELETION SUMMARY');
     console.log('='.repeat(80));
-    console.log(`✅ Successfully deleted: ${successCount} collections`);
-    console.log(`❌ Errors: ${errorCount}`);
+    console.log(` Successfully deleted: ${successCount} collections`);
+    console.log(` Errors: ${errorCount}`);
     console.log('='.repeat(80));
 
     if (successCount > 0) {
-        console.log('\n✅ Collections deleted successfully!');
+        console.log('\n Collections deleted successfully!');
         console.log('\n💡 Next steps:');
         console.log('   1. Recreate collections in Appwrite Console');
         console.log('   2. Or run: node src/scripts/recreate-collections.js (if available)');
@@ -127,7 +127,7 @@ async function deleteAllCollections() {
 
 // Run the deletion
 deleteAllCollections().catch(error => {
-    console.error('\n❌ Fatal error:', error.message);
+    console.error('\n Fatal error:', error.message);
     rl.close();
     process.exit(1);
 });

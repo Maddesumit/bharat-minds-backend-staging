@@ -554,7 +554,7 @@ function displayResults(formData, savedId) {
     resultsSummary.innerHTML = `
         <div style="background: linear-gradient(135deg, #e6fffa, #d0f4de); padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 2px solid #48bb78;">
             <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
-                <span style="font-size: 32px;">✅</span>
+                <span style="font-size: 32px;"></span>
                 <h3 style="color: #22543d; margin: 0;">Data Saved Successfully!</h3>
             </div>
             <p style="color: #2f855a; margin: 0;">

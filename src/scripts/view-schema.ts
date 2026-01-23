@@ -55,7 +55,7 @@ async function listAllCollections() {
 
         return response.collections;
     } catch (error) {
-        console.error('❌ Error listing collections:', error.message);
+        console.error(' Error listing collections:', error.message);
         return [];
     }
 }
@@ -76,7 +76,7 @@ async function getCollectionSchema(collectionId) {
         console.log('='.repeat(80));
 
         // Display Attributes (Schema Fields)
-        console.log(`\n📋 Attributes (${collection.attributes.length} fields):\n`);
+        console.log(`\n Attributes (${collection.attributes.length} fields):\n`);
 
         if (collection.attributes.length === 0) {
             console.log('   No attributes defined');
@@ -121,7 +121,7 @@ async function getCollectionSchema(collectionId) {
 
         return collection;
     } catch (error) {
-        console.error(`❌ Error fetching collection schema: ${error.message}`);
+        console.error(` Error fetching collection schema: ${error.message}`);
         return null;
     }
 }
@@ -185,7 +185,7 @@ async function sampleCollectionData(collectionId, limit = 3) {
 
         return response;
     } catch (error) {
-        console.error(`❌ Error sampling data: ${error.message}`);
+        console.error(` Error sampling data: ${error.message}`);
         return null;
     }
 }
@@ -208,7 +208,7 @@ async function main() {
     const collections = await listAllCollections();
 
     if (collections.length === 0) {
-        console.log('\n❌ No collections found. Check your database ID and connection.');
+        console.log('\n No collections found. Check your database ID and connection.');
         return;
     }
 
@@ -227,12 +227,12 @@ async function main() {
     // Uncomment to view all schemas
     // await viewAllSchemas();
 
-    console.log('\n✅ Schema inspection complete!\n');
+    console.log('\n Schema inspection complete!\n');
     console.log('💡 Tip: Edit this file and uncomment viewAllSchemas() to see all collection schemas.\n');
 }
 
 // Run the script
 main().catch(error => {
-    console.error('\n❌ Fatal error:', error.message);
+    console.error('\n Fatal error:', error.message);
     process.exit(1);
 });

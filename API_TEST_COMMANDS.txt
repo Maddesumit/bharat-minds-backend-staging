@@ -1,0 +1,50 @@
+# BHARAT MINDS API - Test Commands
+# Run these in a new terminal while server is running
+
+# ============================================================================
+# Method 1: PowerShell/CMD Commands
+# ============================================================================
+
+# Test 1: Health Check
+curl http://localhost:3001/health
+
+# Test 2: Get all colleges
+curl http://localhost:3001/api/colleges
+
+# Test 3: Get course categories for UGCET
+curl http://localhost:3001/api/options/course-categories/UGCET
+
+# Test 4: Get engineering branches
+curl http://localhost:3001/api/options/engineering-branches
+
+# Test 5: Create a student rank (POST request)
+curl -X POST http://localhost:3001/api/options/ranks `
+  -H "Content-Type: application/json" `
+  -d '{\"userId\":\"test123\",\"counsellingType\":\"UGCET\",\"courseCategory\":\"Engineering\",\"generalMeritRank\":12345}'
+
+# Test 6: Get student ranks
+curl http://localhost:3001/api/options/ranks/test123
+
+# ============================================================================
+# For Windows PowerShell, use Invoke-WebRequest
+# ============================================================================
+
+# Health check
+Invoke-WebRequest -Uri http://localhost:3001/health
+
+# Get colleges
+Invoke-WebRequest -Uri http://localhost:3001/api/colleges
+
+# POST request to save rank
+$body = @{
+    userId = "test123"
+    counsellingType = "UGCET"
+    courseCategory = "Engineering"
+    generalMeritRank = 12345
+} | ConvertTo-Json
+
+Invoke-WebRequest -Uri http://localhost:3001/api/options/ranks `
+    -Method POST `
+    -Body $body `
+    -ContentType "application/json"
+
