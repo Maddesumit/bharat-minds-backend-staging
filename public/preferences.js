@@ -424,7 +424,7 @@ async function handleFormSubmit(e) {
         window.scrollTo({ top: 0, behavior: 'smooth' });
 
     } catch (error) {
-        console.error('❌ FINAL ERROR →', error.message);
+        console.error('FINAL ERROR →', error.message);
         alert(`Failed to save preferences:\n\n${error.message}`);
     } finally {
         loadingOverlay.classList.remove('active');

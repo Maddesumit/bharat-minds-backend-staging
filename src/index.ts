@@ -11,7 +11,7 @@ import ranksRoutes from './routes/ranks.routes';
 import studentRankRoutes from './routes/student-rank.routes';
 import collegeRoutes from './routes/college.routes';
 import courseRoutes from './routes/course.routes';
-import preferenceRoutes from './routes/preference.routes';
+import preferenceRoutes from './routes/preferences.routes';
 import optionGeneratorRoutes from './routes/option-generator.routes';
 
 // Load environment variables
