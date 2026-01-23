@@ -394,7 +394,8 @@ async function handleFormSubmit(e) {
         })),
         locations: state.selectedLocations,
         collegeTypes: getSelectedCheckboxes(['typeGovt', 'typeVTU', 'typeAuton', 'typePrivateUniv', 'typeDeemed']),
-        seatTypes: getSelectedCheckboxes(['seatGovt', 'seatPrivate', 'seatMang', 'seatNRI'])
+        // For UGCET, we strictly interpret seat type as Government
+        seatTypes: ['G']
     };
 
     console.log('📤 PAYLOAD SENT →', preferences);
