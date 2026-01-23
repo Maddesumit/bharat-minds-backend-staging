@@ -1,6 +1,7 @@
 # ============================================
 # Node.js & NPM
 # ============================================
+.gitignore
 node_modules/
 npm-debug.log*
 yarn-debug.log*
@@ -198,4 +199,7 @@ bower_components/
 
 *.md
 !README.md
+
+*.txt
+!requirements.txt
 

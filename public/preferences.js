@@ -134,6 +134,14 @@ function setupEventListeners() {
             courseResults.classList.remove('active');
         }
     });
+
+    // New preference button (reload page)
+    const newPrefBtn = document.getElementById('newPreferenceBtn');
+    if (newPrefBtn) {
+        newPrefBtn.addEventListener('click', () => {
+            location.reload();
+        });
+    }
 }
 
 function handleRemoveClick(e) {
