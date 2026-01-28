@@ -367,7 +367,14 @@
                     </p>
 
                     <div id="generatedResults" style="display: none; margin-top: 20px;">
-                        <h3 style="color: #2d3748; margin-bottom: 15px;">Suggested Options</h3>
+                        <div
+                            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                            <h3 style="color: #2d3748; margin: 0;">Suggested Options</h3>
+                            <button id="addAllBtn" class="btn btn-primary"
+                                style="font-size: 13px; padding: 8px 16px; background: #48bb78; border-color: #48bb78; cursor: pointer;">
+                                ➕ Add All to Selection
+                            </button>
+                        </div>
                         <div id="generatedList"
                             style="max-height: 400px; overflow-y: auto; background: white; border-radius: 8px; border: 1px solid #e2e8f0;">
                             <!-- Results will appear here -->

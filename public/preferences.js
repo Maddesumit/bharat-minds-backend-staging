@@ -538,7 +538,62 @@ function setupGenerationLogic() {
         }
     });
 
+    // ADD ALL BUTTON LOGIC
+    const addAllBtn = document.getElementById('addAllBtn');
+    let currentOptions = []; // Store options here
+
+    if (addAllBtn) {
+        addAllBtn.addEventListener('click', () => {
+            if (currentOptions.length === 0) return;
+
+            let addedColleges = 0;
+            let addedCourses = 0;
+
+            currentOptions.forEach(opt => {
+                // 1. Add College if not exists
+                // Find complete college object from state to get the ID
+                const collegeObj = state.colleges.find(c => c.collegeCode === opt.collegeCode);
+
+                if (collegeObj) {
+                    const alreadySelected = state.selectedColleges.some(c => c.code === opt.collegeCode);
+                    if (!alreadySelected) {
+                        selectCollege(collegeObj.$id, collegeObj.collegeCode, collegeObj.collegeName);
+                        addedColleges++;
+                    }
+                }
+
+                // 2. Add Course if not exists
+                // Try to find course by code
+                const courseObj = state.courses.find(c => c.branchCode === opt.branchCode || c.courseCode === opt.branchCode);
+
+                if (courseObj) {
+                    const code = courseObj.branchCode || courseObj.courseCode;
+                    const alreadySelected = state.selectedCourses.some(c => c.code === code);
+
+                    if (!alreadySelected) {
+                        const name = courseObj.branchName || courseObj.courseName;
+                        // Use selectCourse existing function? 
+                        // No, selectCourse expects click event usually or just ID. 
+                        // Looking at selectCourse(id, code, name): it pushes to state and calls render.
+                        selectCourse(courseObj.$id, code, name);
+                        addedCourses++;
+                    }
+                }
+            });
+
+            if (addedColleges > 0 || addedCourses > 0) {
+                alert(`Successfully added ${addedColleges} colleges and ${addedCourses} courses to your selection!`);
+                // Scroll to top
+                document.querySelector('.filter-section').scrollIntoView({ behavior: 'smooth' });
+            } else {
+                alert('All these items are already in your selection.');
+            }
+        });
+    }
+
     function renderGeneratedOptions(options) {
+        currentOptions = options; // Update current options state
+
         if (!options || options.length === 0) {
             generatedList.innerHTML = '<div style="padding: 20px; text-align: center; color: #718096;">No options found matching your criteria. Try loosening your filters or checking your rank.</div>';
             return;
