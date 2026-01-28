@@ -179,6 +179,47 @@
             </div>
 
             <form id="preferencesForm">
+                <!-- Rank and Category (New) -->
+                <div class="filter-section">
+                    <div class="filter-title">
+                        <span style="font-size: 24px;">📊</span>
+                        Student Details (Essential for Recommendations)
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                        <div class="search-box">
+                            <label style="display: block; margin-bottom: 8px; font-weight: 500; color: #4a5568;">CET
+                                Rank</label>
+                            <input type="number" id="studentRank" class="search-input"
+                                placeholder="Enter your CET Rank (e.g. 5000)" required>
+                        </div>
+                        <div class="search-box">
+                            <label
+                                style="display: block; margin-bottom: 8px; font-weight: 500; color: #4a5568;">Category</label>
+                            <select id="studentCategory" class="search-input" style="appearance: auto;" required>
+                                <option value="" disabled selected>Select Category</option>
+                                <option value="GM">GM - General Merit</option>
+                                <option value="1G">1G - Category 1 General</option>
+                                <option value="1R">1R - Category 1 Rural</option>
+                                <option value="1K">1K - Category 1 Kannada</option>
+                                <option value="2AG">2AG - 2A General</option>
+                                <option value="2AR">2AR - 2A Rural</option>
+                                <option value="2AK">2AK - 2A Kannada</option>
+                                <option value="2BG">2BG - 2B General</option>
+                                <option value="2BR">2BR - 2B Rural</option>
+                                <option value="3AG">3AG - 3A General</option>
+                                <option value="3AR">3AR - 3A Rural</option>
+                                <option value="3BG">3BG - 3B General</option>
+                                <option value="3BR">3BR - 3B Rural</option>
+                                <option value="SCG">SCG - SC General</option>
+                                <option value="SCR">SCR - SC Rural</option>
+                                <option value="SCK">SCK - SC Kannada</option>
+                                <option value="STG">STG - ST General</option>
+                                <option value="STR">STR - ST Rural</option>
+                                <option value="STK">STK - ST Kannada</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
                 <!-- College Search -->
                 <div class="filter-section">
                     <div class="filter-title">
@@ -312,6 +353,25 @@
                             </div>
                         </label>
                         <!-- Other seat types hidden for UGCET -->
+                    </div>
+                </div>
+
+                <!-- Generate Options Button -->
+                <div class="filter-section" style="background: #f0f4ff; border-color: #667eea;">
+                    <button type="button" id="generateBtn" class="btn btn-primary"
+                        style="width: 100%; font-size: 16px; padding: 15px;">
+                        ✨ Generate Option Entry List
+                    </button>
+                    <p style="text-align: center; margin-top: 10px; color: #4a5568;">
+                        Based on your Rank, Category, and Preferences above
+                    </p>
+
+                    <div id="generatedResults" style="display: none; margin-top: 20px;">
+                        <h3 style="color: #2d3748; margin-bottom: 15px;">Suggested Options</h3>
+                        <div id="generatedList"
+                            style="max-height: 400px; overflow-y: auto; background: white; border-radius: 8px; border: 1px solid #e2e8f0;">
+                            <!-- Results will appear here -->
+                        </div>
                     </div>
                 </div>
 

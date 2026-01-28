@@ -473,6 +473,129 @@ function escapeHtml(text) {
 }
 
 // ============================================================================
+// OPTION GENERATOR LOGIC
+// ============================================================================
+function setupGenerationLogic() {
+    const generateBtn = document.getElementById('generateBtn');
+    const studentRankInput = document.getElementById('studentRank');
+    const studentCategoryInput = document.getElementById('studentCategory');
+    const generatedResults = document.getElementById('generatedResults');
+    const generatedList = document.getElementById('generatedList');
+
+    if (!generateBtn) return;
+
+    generateBtn.addEventListener('click', async () => {
+        const rank = studentRankInput.value;
+        const category = studentCategoryInput.value;
+
+        if (!rank) {
+            alert('Please enter your CET Rank first.');
+            studentRankInput.focus();
+            return;
+        }
+        if (!category) {
+            alert('Please select your Category first.');
+            studentCategoryInput.focus();
+            return;
+        }
+
+        // Prepare request
+        const courseCodes = state.selectedCourses.map(c => c.code);
+        const collegeCodes = state.selectedColleges.map(c => c.code);
+
+        generateBtn.disabled = true;
+        generateBtn.textContent = 'Generating...';
+        generatedResults.style.display = 'none';
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/preferences/generate-options`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    rank: parseInt(rank),
+                    category,
+                    courseCodes,
+                    collegeCodes,
+                    seatType: 'Government' // Default for now
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                renderGeneratedOptions(data.data);
+                generatedResults.style.display = 'block';
+            } else {
+                throw new Error(data.error || 'Failed to generate options');
+            }
+
+        } catch (error) {
+            console.error('Generation Error:', error);
+            alert('Error generating options: ' + error.message);
+        } finally {
+            generateBtn.disabled = false;
+            generateBtn.textContent = '✨ Generate Option Entry List';
+        }
+    });
+
+    function renderGeneratedOptions(options) {
+        if (!options || options.length === 0) {
+            generatedList.innerHTML = '<div style="padding: 20px; text-align: center; color: #718096;">No options found matching your criteria. Try loosening your filters or checking your rank.</div>';
+            return;
+        }
+
+        generatedList.innerHTML = options.map((opt, index) => {
+            const probColor =
+                opt.probabilityLabel === 'High' ? '#48bb78' :
+                    opt.probabilityLabel === 'Medium' ? '#ecc94b' :
+                        '#f56565';
+
+            const probBg =
+                opt.probabilityLabel === 'High' ? '#f0fff4' :
+                    opt.probabilityLabel === 'Medium' ? '#fffff0' :
+                        '#fff5f5';
+
+            return `
+            <div style="padding: 15px; border-bottom: 1px solid #e2e8f0; background: ${probBg}; display: flex; align-items: center; justify-content: space-between;">
+                <div>
+                    <div style="font-weight: 600; color: #2d3748; font-size: 15px;">
+                        ${index + 1}. [${opt.collegeCode}] ${opt.collegeName}
+                    </div>
+                    <div style="color: #4a5568; font-size: 14px; margin-top: 4px;">
+                        Branch: <strong>${opt.branchCode}</strong> - ${opt.branchName}
+                    </div>
+                    <div style="color: #718096; font-size: 12px; margin-top: 4px;">
+                        Cutoff: ${opt.cutoffRank} (Year: ${opt.year})
+                    </div>
+                </div>
+                <div style="text-align: right;">
+                    <div style="
+                        display: inline-block; 
+                        padding: 4px 10px; 
+                        border-radius: 99px; 
+                        background: ${probColor}; 
+                        color: white; 
+                        font-weight: 600; 
+                        font-size: 12px;
+                    ">
+                        ${opt.probability}% Match
+                    </div>
+                </div>
+            </div>
+            `;
+        }).join('');
+    }
+}
+
+// ============================================================================
 // INITIALIZE ON LOAD
 // ============================================================================
+async function initialize() {
+    await loadColleges();
+    await loadCourses();
+    populateCities();
+    setupEventListeners();
+    setupGenerationLogic();
+}
+
 initialize();

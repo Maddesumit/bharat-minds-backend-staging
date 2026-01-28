@@ -29,7 +29,7 @@ export async function setupHistoricalCutoffs(databases: Databases, databaseId: s
     await createAttributeSafe(databases, databaseId, collectionId, 'branchName', 'string', 255, true);
 
     // Seat Details
-    await createAttributeSafe(databases, databaseId, collectionId, 'seatType', 'string', 5, true);
+    await createAttributeSafe(databases, databaseId, collectionId, 'seatType', 'string', 20, true);
     await createAttributeSafe(databases, databaseId, collectionId, 'category', 'string', 20, true);
 
     // Cutoff Data

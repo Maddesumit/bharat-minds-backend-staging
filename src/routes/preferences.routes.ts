@@ -216,4 +216,46 @@ router.delete('/:id', async (req: Request, res: Response) => {
     }
 });
 
+import { generateOptions } from '../services/option-generator.service';
+
+/**
+ * Generate options based on rank and preferences
+ * POST /api/preferences/generate-options
+ */
+router.post('/generate-options', async (req: Request, res: Response) => {
+    try {
+        console.log('🎲 Generating options request:', req.body);
+
+        const { rank, category, courseCodes, collegeCodes, seatType } = req.body;
+
+        if (!rank || !category) {
+            return res.status(400).json({
+                success: false,
+                error: 'Rank and Category are required'
+            });
+        }
+
+        const options = await generateOptions({
+            rank: parseInt(rank),
+            category: category,
+            courseCodes,
+            collegeCodes,
+            seatType
+        });
+
+        return res.json({
+            success: true,
+            count: options.length,
+            data: options
+        });
+
+    } catch (error: any) {
+        console.error('Error generating options:', error);
+        return res.status(500).json({
+            success: false,
+            error: error.message || 'Failed to generate options'
+        });
+    }
+});
+
 export default router;
