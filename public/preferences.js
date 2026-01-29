@@ -620,7 +620,7 @@ function setupGenerationLogic() {
                         Branch: <strong>${opt.branchCode}</strong> - ${opt.branchName}
                     </div>
                     <div style="color: #718096; font-size: 12px; margin-top: 4px;">
-                        Cutoff: ${opt.cutoffRank} (Year: ${opt.year})
+                        Cutoff: ${opt.cutoffRank} (Year: ${opt.year}, Round: ${opt.round || 1})
                     </div>
                 </div>
                 <div style="text-align: right;">

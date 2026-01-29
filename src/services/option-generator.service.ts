@@ -22,6 +22,7 @@ export interface OptionEntry {
     probabilityLabel: 'High' | 'Medium' | 'Low' | 'Very Low';
     category: string;
     year: number;
+    round: number;
 }
 
 /**
@@ -148,7 +149,8 @@ export async function generateOptions(criteria: GenerationCriteria): Promise<Opt
                 probability: prob,
                 probabilityLabel: label,
                 category: doc.category,
-                year: doc.academicYear
+                year: doc.academicYear,
+                round: doc.round
             };
         });
 
