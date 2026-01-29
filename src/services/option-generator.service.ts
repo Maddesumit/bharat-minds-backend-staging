@@ -154,8 +154,9 @@ export async function generateOptions(criteria: GenerationCriteria): Promise<Opt
             };
         });
 
-        // Sort by Probability Order: High -> Medium -> Low
-        return options.sort((a, b) => b.probability - a.probability);
+        // Sort by Probability Order: Low -> Medium -> High (Ascending)
+        // User Request: "lower percentages up, highest below, mid in middle"
+        return options.sort((a, b) => a.probability - b.probability);
 
     } catch (error) {
         console.error('Error generating options:', error);
