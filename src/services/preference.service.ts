@@ -101,6 +101,7 @@ export async function addPreference(data: AddPreferenceDTO) {
 /**
  * Bulk add preferences
  */
+// two-column format for rounds
 export async function bulkAddPreferences(
     userId: string,
     counsellingType: CounsellingType,
