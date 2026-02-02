@@ -600,41 +600,52 @@ function setupGenerationLogic() {
         }
 
         generatedList.innerHTML = options.map((opt, index) => {
-            const probColor =
-                opt.probabilityLabel === 'High' ? '#48bb78' :
-                    opt.probabilityLabel === 'Medium' ? '#ecc94b' :
-                        '#f56565';
+            // Helper to generate round badge
+            const renderRound = (roundName, data) => {
+                if (!data) return `<div style="color: #cbd5e0; font-size: 12px; margin-top: 5px;">${roundName}: N/A</div>`;
 
-            const probBg =
-                opt.probabilityLabel === 'High' ? '#f0fff4' :
-                    opt.probabilityLabel === 'Medium' ? '#fffff0' :
-                        '#fff5f5';
+                const probColor =
+                    data.probabilityLabel === 'High' ? '#48bb78' :
+                        data.probabilityLabel === 'Medium' ? '#ecc94b' :
+                            '#f56565';
+
+                return `
+                    <div style="margin-top: 6px; display: flex; align-items: center; justify-content: space-between; font-size: 13px;">
+                        <span style="color: #4a5568; font-weight: 500;">${roundName} Cutoff: <strong>${data.cutoff}</strong></span>
+                        <span style="
+                            padding: 2px 8px; 
+                            border-radius: 6px; 
+                            background: ${probColor}; 
+                            color: white; 
+                            font-weight: 600; 
+                            font-size: 11px;
+                        ">${data.probability}%</span>
+                    </div>
+                `;
+            };
+
+            const overallProb = opt.r1 ? opt.r1.probabilityLabel : (opt.r2 ? opt.r2.probabilityLabel : 'Low');
+            const bg = overallProb === 'High' ? '#f0fff4' : overallProb === 'Medium' ? '#fffff0' : '#fff5f5';
 
             return `
-            <div style="padding: 15px; border-bottom: 1px solid #e2e8f0; background: ${probBg}; display: flex; align-items: center; justify-content: space-between;">
-                <div>
-                    <div style="font-weight: 600; color: #2d3748; font-size: 15px;">
-                        ${index + 1}. [${opt.collegeCode}] ${opt.collegeName}
+            <div style="padding: 15px; border-bottom: 1px solid #e2e8f0; background: ${bg};">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div>
+                        <div style="font-weight: 600; color: #2d3748; font-size: 15px;">
+                            ${index + 1}. [${opt.collegeCode}] ${opt.collegeName}
+                        </div>
+                        <div style="color: #4a5568; font-size: 14px; margin-top: 2px;">
+                            Branch: <strong>${opt.branchCode}</strong> - ${opt.branchName}
+                        </div>
                     </div>
-                    <div style="color: #4a5568; font-size: 14px; margin-top: 4px;">
-                        Branch: <strong>${opt.branchCode}</strong> - ${opt.branchName}
-                    </div>
-                    <div style="color: #718096; font-size: 12px; margin-top: 4px;">
-                        Cutoff: ${opt.cutoffRank} (Year: ${opt.year}, Round: ${opt.round || 1})
+                    <div style="font-size: 11px; color: #a0aec0;">
+                         ${opt.year}
                     </div>
                 </div>
-                <div style="text-align: right;">
-                    <div style="
-                        display: inline-block; 
-                        padding: 4px 10px; 
-                        border-radius: 99px; 
-                        background: ${probColor}; 
-                        color: white; 
-                        font-weight: 600; 
-                        font-size: 12px;
-                    ">
-                        ${opt.probability}% Match
-                    </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 10px; border-top: 1px dashed #e2e8f0; padding-top: 8px;">
+                    <div>${renderRound('Round 1', opt.r1)}</div>
+                    <div style="border-left: 1px dashed #e2e8f0; padding-left: 15px;">${renderRound('Round 2', opt.r2)}</div>
                 </div>
             </div>
             `;

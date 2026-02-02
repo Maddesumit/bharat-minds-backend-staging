@@ -11,18 +11,23 @@ export interface GenerationCriteria {
     location?: string;
 }
 
+export interface RoundData {
+    cutoff: number;
+    probability: number;
+    probabilityLabel: 'High' | 'Medium' | 'Low' | 'Very Low';
+    isOpen?: boolean; // If cutoff exists
+}
+
 export interface OptionEntry {
     optionId: string;
     collegeCode: string;
     collegeName: string;
     branchCode: string;
     branchName: string;
-    cutoffRank: number;
-    probability: number; // 0-100
-    probabilityLabel: 'High' | 'Medium' | 'Low' | 'Very Low';
     category: string;
     year: number;
-    round: number;
+    r1: RoundData | null;
+    r2: RoundData | null;
 }
 
 /**
@@ -41,27 +46,14 @@ export async function generateOptions(criteria: GenerationCriteria): Promise<Opt
 
     try {
         let documents: any[] = [];
+        // Filtering criteria
         const queries: string[] = [
             Query.equal('category', category),
             Query.equal('seatType', seatType),
-            // We want to fetch options where cutoff is RELEVANT.
-            // i.e. cutoffRank > 0.
-            // We usually want "Safe" (cutoff > rank) and "Ambitious" (cutoff slightly < rank).
-            // Let's fetch reasonably close cutoffs. 
-            // If Rank is 10000, we might want to see colleges with cutoff 5000+.
-            // If Rank is 10000, cutoff 200 is impossible.
+            // Fetch relevant cutoffs (cutoff > 50% of rank to avoid impossible options)
             Query.greaterThanEqual('cutoffRank', Math.floor(rank * 0.5)),
-            Query.limit(100) // Safety limit per query
+            Query.limit(100)
         ];
-
-        // If specific colleges provided, filter by them
-        // Appwrite query doesn't support "In Array" for strings easily in one go efficiently without multiple queries or search.
-        // If collegeCodes is small, we can loop.
-        // If courseCodes is small, we can loop.
-
-        // Strategy: 
-        // 1. If courseCodes provided, loop through them and query.
-        // 2. If collegeCodes provided, filter in memory (unless only college provided).
 
         if (courseCodes.length > 0) {
             const promises = courseCodes.map(code =>
@@ -71,10 +63,7 @@ export async function generateOptions(criteria: GenerationCriteria): Promise<Opt
                     [
                         ...queries,
                         Query.equal('branchCode', code),
-                        Query.orderAsc('cutoffRank'), // Best colleges (lowest rank) first? No, lowest rank is hard. 
-                        // We want high cutoff matching. 
-                        // Actually, just order by cutoffRank ascending (hardest to easiest).
-                        Query.limit(50)
+                        Query.limit(100) // Increase limit to catch multiple rounds
                     ]
                 )
             );
@@ -82,81 +71,82 @@ export async function generateOptions(criteria: GenerationCriteria): Promise<Opt
             const results = await Promise.all(promises);
             results.forEach(r => documents.push(...r.documents));
         } else {
-            // No course restriction? Query all? Might be too many.
-            // This is "Suggest me anything" mode.
-            // We limit to top 100 results matching rank.
             const response = await databases.listDocuments(
                 config.databaseId,
                 'historical_cutoffs',
                 [
                     ...queries,
                     Query.orderAsc('cutoffRank'),
-                    Query.limit(100)
+                    Query.limit(200) // Fetch more to ensure we get R1 and R2 pairs
                 ]
             );
             documents = response.documents;
         }
 
-        // Deduplicate locally (in case of overlaps if we change logic)
-        const uniqueDocs = new Map();
+        // Group by College-Branch
+        const groupedOptions = new Map<string, any>();
+
         documents.forEach(doc => {
             const key = `${doc.collegeCode}-${doc.branchCode}`;
-            if (!uniqueDocs.has(key)) {
-                uniqueDocs.set(key, doc);
-            }
-        });
 
-        const options: OptionEntry[] = Array.from(uniqueDocs.values()).map((doc: any) => {
+            if (!groupedOptions.has(key)) {
+                groupedOptions.set(key, {
+                    optionId: doc.$id,
+                    collegeCode: doc.collegeCode,
+                    collegeName: doc.collegeName || doc.collegeCode,
+                    branchCode: doc.branchCode,
+                    branchName: doc.branchName,
+                    category: doc.category,
+                    year: doc.academicYear,
+                    r1: null,
+                    r2: null
+                });
+            }
+
+            const entry = groupedOptions.get(key);
+            const roundNum = doc.round || 1; // Default to 1 if missing
+
+            // Calculate Probability for this specific round doc
             const cutoff = doc.cutoffRank;
             let prob = 0;
-            let label: OptionEntry['probabilityLabel'] = 'Low';
-
-            // Probability Logic
-            // If Rank < Cutoff, Good chance.
-            // Gap = Cutoff - Rank.
-            // If Rank is 5000, Cutoff 6000 -> Gap 1000. Safety margin 20%?
+            let label: RoundData['probabilityLabel'] = 'Low';
 
             if (rank <= cutoff) {
-                // Determine how safe
-                const ratio = rank / cutoff; // e.g. 5000/6000 = 0.83
+                const ratio = rank / cutoff;
                 if (ratio <= 0.8) {
-                    prob = 95;
-                    label = 'High';
+                    prob = 95; label = 'High';
                 } else {
-                    prob = 75;
-                    label = 'Medium';
+                    prob = 75; label = 'Medium';
                 }
             } else {
-                // Rank > Cutoff (Ambitious)
-                // e.g. Rank 6000, Cutoff 5000. Ratio = 1.2
                 const ratio = rank / cutoff;
                 if (ratio < 1.15) {
-                    prob = 40;
-                    label = 'Low';
+                    prob = 40; label = 'Low';
                 } else {
-                    prob = 10;
-                    label = 'Very Low';
+                    prob = 10; label = 'Very Low';
                 }
             }
 
-            return {
-                optionId: doc.$id,
-                collegeCode: doc.collegeCode,
-                collegeName: doc.collegeName || doc.collegeCode,
-                branchCode: doc.branchCode,
-                branchName: doc.branchName,
-                cutoffRank: cutoff,
+            const roundData: RoundData = {
+                cutoff,
                 probability: prob,
                 probabilityLabel: label,
-                category: doc.category,
-                year: doc.academicYear,
-                round: doc.round
+                isOpen: true
             };
+
+            if (roundNum === 1) entry.r1 = roundData;
+            else if (roundNum === 2) entry.r2 = roundData;
         });
 
-        // Sort by Probability Order: Low -> Medium -> High (Ascending)
-        // User Request: "lower percentages up, highest below, mid in middle"
-        return options.sort((a, b) => a.probability - b.probability);
+        // Convert Map to Array
+        const options: OptionEntry[] = Array.from(groupedOptions.values());
+
+        // Sort by R1 probability (Low -> High)
+        return options.sort((a, b) => {
+            const probA = a.r1 ? a.r1.probability : (a.r2 ? a.r2.probability : 0);
+            const probB = b.r1 ? b.r1.probability : (b.r2 ? b.r2.probability : 0);
+            return probA - probB;
+        });
 
     } catch (error) {
         console.error('Error generating options:', error);
