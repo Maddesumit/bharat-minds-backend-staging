@@ -58,152 +58,160 @@ async function importFarmAgri() {
         return;
     }
 
-    const csvPath = path.join(process.cwd(), 'data/updated_FoodSc_file(in).csv');
-    if (!fs.existsSync(csvPath)) {
-        console.error(`❌ File not found: ${csvPath}`);
-        return;
-    }
+    const csvFiles = [
+        'data/updated_FoodSc_file(in).csv',
+        'data/updated_FoodSc_HK_file(in).csv'
+    ];
 
-    // Read CSV
-    const fileContent = fs.readFileSync(csvPath, 'utf-8');
-    const records = parse(fileContent, {
-        columns: true,
-        skip_empty_lines: true,
-        trim: true,
-        relax_column_count: true
-    });
+    for (const fileName of csvFiles) {
+        const csvPath = path.join(process.cwd(), fileName);
+        console.log(`\n📂 Processing ${fileName}...`);
 
-    if (records.length === 0) {
-        console.error('❌ No records found in CSV');
-        return;
-    }
-
-    const headers = Object.keys((records as any[])[0]);
-    console.log(`📋 Found ${headers.length} columns:`, headers.join(', '));
-    console.log(`📄 Found ${records.length} records`);
-
-    // 1. Create Collection
-    console.log(`\n🔨 Creating Collection '${COLLECTION_NAME}'...`);
-    try {
-        // Check if exists
-        try {
-            await databases.getCollection(config.databaseId, COLLECTION_ID);
-            console.log(`⚠️ Collection ${COLLECTION_ID} already exists. Skipping creation.`);
-        } catch (e) {
-            await databases.createCollection(
-                config.databaseId,
-                COLLECTION_ID,
-                COLLECTION_NAME,
-                [Permission.read(Role.any())]
-            );
-            console.log(`✅ Collection Created: ${COLLECTION_ID}`);
+        if (!fs.existsSync(csvPath)) {
+            console.error(`❌ File not found: ${csvPath}`);
+            continue;
         }
-    } catch (error: any) {
-        console.error(`❌ Error creating collection: ${error.message}`);
-        return;
-    }
 
-    // 2. Create Attributes
-    console.log(`\n🔧 Defining Attributes...`);
-    const attributeMap: { [key: string]: string } = {}; // Header -> AttributeID
+        // Read CSV
+        const fileContent = fs.readFileSync(csvPath, 'utf-8');
+        const records = parse(fileContent, {
+            columns: true,
+            skip_empty_lines: true,
+            trim: true,
+            relax_column_count: true
+        });
 
-    const typeMap: { [key: string]: 'string' | 'integer' | 'double' } = {};
-
-    for (const header of headers) {
-        const attrKey = sanitizeAttributeId(header);
-        attributeMap[header] = attrKey;
-
-        // Sample values to detect type
-        const samples = records.slice(0, 100).map((r: any) => r[header]);
-        const type = detectType(samples);
-        typeMap[header] = type;
-
-
-        console.log(`   Field: "${header}" -> ID: "${attrKey}" (${type})`);
-
-        try {
-            if (type === 'string') {
-                await databases.createStringAttribute(config.databaseId, COLLECTION_ID, attrKey, 1000, false); // 1000 chars for safety
-            } else if (type === 'integer') {
-                await databases.createIntegerAttribute(config.databaseId, COLLECTION_ID, attrKey, false);
-            } else if (type === 'double') {
-                await databases.createFloatAttribute(config.databaseId, COLLECTION_ID, attrKey, false);
-            }
-        } catch (e: any) {
-            if (e.code === 409) {
-                // Already exists
-                // console.log(`      (Attribute exists)`);
-            } else {
-                console.error(`      ❌ Failed to create attribute: ${e.message}`);
-            }
+        if (records.length === 0) {
+            console.error('❌ No records found in CSV');
+            return;
         }
-        // Small delay to prevent network saturation
-        await new Promise(r => setTimeout(r, 200));
-    }
 
-    // Wait for attributes to be ready (Appwrite is async)
-    console.log(`\n⏳ Waiting for attributes to index (5s)...`);
-    await new Promise(r => setTimeout(r, 5000));
+        const headers = Object.keys((records as any[])[0]);
+        console.log(`📋 Found ${headers.length} columns:`, headers.join(', '));
+        console.log(`📄 Found ${records.length} records`);
 
-    // 3. Import Data
-    console.log(`\n🚀 Importing Records...`);
-    let success = 0;
-    let failed = 0;
-
-    // Process ALL records
-    // const debugRecords = records.slice(0, 1);
-
-    for (const [i, row] of records.entries()) {
+        // 1. Create Collection
+        console.log(`\n🔨 Creating Collection '${COLLECTION_NAME}'...`);
         try {
-            const data: any = {};
-            for (const header of headers) {
-                const attrKey = attributeMap[header];
-                const type = typeMap[header];
-                const val = (row as any)[header];
+            // Check if exists
+            try {
+                await databases.getCollection(config.databaseId, COLLECTION_ID);
+                console.log(`⚠️ Collection ${COLLECTION_ID} already exists. Skipping creation.`);
+            } catch (e) {
+                await databases.createCollection(
+                    config.databaseId,
+                    COLLECTION_ID,
+                    COLLECTION_NAME,
+                    [Permission.read(Role.any())]
+                );
+                console.log(`✅ Collection Created: ${COLLECTION_ID}`);
+            }
+        } catch (error: any) {
+            console.error(`❌ Error creating collection: ${error.message}`);
+            return;
+        }
 
-                if (val === '' || val === null || val === undefined) {
-                    data[attrKey] = null;
+        // 2. Create Attributes
+        console.log(`\n🔧 Defining Attributes...`);
+        const attributeMap: { [key: string]: string } = {}; // Header -> AttributeID
+
+        const typeMap: { [key: string]: 'string' | 'integer' | 'double' } = {};
+
+        for (const header of headers) {
+            const attrKey = sanitizeAttributeId(header);
+            attributeMap[header] = attrKey;
+
+            // Sample values to detect type
+            const samples = records.slice(0, 100).map((r: any) => r[header]);
+            const type = detectType(samples);
+            typeMap[header] = type;
+
+
+            console.log(`   Field: "${header}" -> ID: "${attrKey}" (${type})`);
+
+            try {
+                if (type === 'string') {
+                    await databases.createStringAttribute(config.databaseId, COLLECTION_ID, attrKey, 1000, false); // 1000 chars for safety
+                } else if (type === 'integer') {
+                    await databases.createIntegerAttribute(config.databaseId, COLLECTION_ID, attrKey, false);
+                } else if (type === 'double') {
+                    await databases.createFloatAttribute(config.databaseId, COLLECTION_ID, attrKey, false);
+                }
+            } catch (e: any) {
+                if (e.code === 409) {
+                    // Already exists
+                    // console.log(`      (Attribute exists)`);
                 } else {
-                    if (type === 'integer') {
-                        const num = parseInt(val, 10);
-                        data[attrKey] = isNaN(num) ? null : num;
-                    } else if (type === 'double') {
-                        const num = parseFloat(val);
-                        data[attrKey] = isNaN(num) ? null : num;
-                    } else {
-                        data[attrKey] = String(val);
-                    }
+                    console.error(`      ❌ Failed to create attribute: ${e.message}`);
                 }
             }
-
-            // Remove empty keys or nulls if required? Appwrite handles optional.
-
-            // Correction: We must cast to Number if attribute is numeric.
-            // I will improve the script to remember types.
-
-            // console.log("Debug payload:", JSON.stringify(data, null, 2));
-
-            await databases.createDocument(
-                config.databaseId,
-                COLLECTION_ID,
-                ID.unique(),
-                data
-            );
-            success++;
-            if (success % 50 === 0) process.stdout.write('.');
-
-            // Delay
-            await new Promise(r => setTimeout(r, 100));
-
-        } catch (error: any) {
-            failed++;
-            console.error(`\n❌ Row ${i + 1} Failed: ${error.message}`);
+            // Small delay to prevent network saturation
+            await new Promise(r => setTimeout(r, 200));
         }
+
+        // Wait for attributes to be ready (Appwrite is async)
+        console.log(`\n⏳ Waiting for attributes to index (5s)...`);
+        await new Promise(r => setTimeout(r, 5000));
+
+        // 3. Import Data
+        console.log(`\n🚀 Importing Records...`);
+        let success = 0;
+        let failed = 0;
+
+        // Process ALL records
+        // const debugRecords = records.slice(0, 1);
+
+        for (const [i, row] of records.entries()) {
+            try {
+                const data: any = {};
+                for (const header of headers) {
+                    const attrKey = attributeMap[header];
+                    const type = typeMap[header];
+                    const val = (row as any)[header];
+
+                    if (val === '' || val === null || val === undefined) {
+                        data[attrKey] = null;
+                    } else {
+                        if (type === 'integer') {
+                            const num = parseInt(val, 10);
+                            data[attrKey] = isNaN(num) ? null : num;
+                        } else if (type === 'double') {
+                            const num = parseFloat(val);
+                            data[attrKey] = isNaN(num) ? null : num;
+                        } else {
+                            data[attrKey] = String(val);
+                        }
+                    }
+                }
+
+                // Remove empty keys or nulls if required? Appwrite handles optional.
+
+                // Correction: We must cast to Number if attribute is numeric.
+                // I will improve the script to remember types.
+
+                // console.log("Debug payload:", JSON.stringify(data, null, 2));
+
+                await databases.createDocument(
+                    config.databaseId,
+                    COLLECTION_ID,
+                    ID.unique(),
+                    data
+                );
+                success++;
+                if (success % 50 === 0) process.stdout.write('.');
+
+                // Delay
+                await new Promise(r => setTimeout(r, 100));
+
+            } catch (error: any) {
+                failed++;
+                console.error(`\n❌ Row ${i + 1} Failed: ${error.message}`);
+            }
+        }
+
+        console.log(`\n\n✅ Import Complete!`);
+        console.log(`   Success: ${success}`);
+        console.log(`   Failed:  ${failed}`);
     }
 
-    console.log(`\n\n✅ Import Complete!`);
-    console.log(`   Success: ${success}`);
-    console.log(`   Failed:  ${failed}`);
-}
-
-importFarmAgri();
+    importFarmAgri();

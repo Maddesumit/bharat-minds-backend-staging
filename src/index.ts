@@ -2,7 +2,19 @@ import express, { Application, Request, Response } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
+import * as dns from 'node:dns';
 import { validateConnection } from './config/appwrite.config';
+
+// Force usage of IPv4 for DNS resolution to avoid connectivity issues with Appwrite Cloud
+// This fixes the 'UND_ERR_CONNECT_TIMEOUT' / 'ConnectTimeoutError' often seen with IPv6
+try {
+    if (dns.setDefaultResultOrder) {
+        dns.setDefaultResultOrder('ipv4first');
+        console.log('DNS Resolution: Set to ipv4first');
+    }
+} catch (error) {
+    console.warn('Failed to set DNS result order:', error);
+}
 
 // Import all routes
 import authRoutes from './routes/auth.routes';
