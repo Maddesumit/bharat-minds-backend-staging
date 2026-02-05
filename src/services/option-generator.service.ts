@@ -173,7 +173,11 @@ export async function generateOptionList(userId: string) {
         // effectively for all requests as requested by the prompt "generate option entry generator algorithm for farming courses"
         // In a real app, we might switch based on a flag.
 
-        return await generateRecommendations(profile);
+        if (profile.courseCategory === 'Farm Science') {
+            return await generateFarmRecommendations(profile);
+        }
+
+        return await generateEngineeringRecommendations(profile);
 
     } catch (error: any) {
         console.error('Generate option list error:', error);
@@ -184,7 +188,11 @@ export async function generateOptionList(userId: string) {
 /**
  * Farming Course Recommendation Algorithm
  */
-export async function generateRecommendations(studentProfile: any) {
+/**
+ * Engineering/Standard Course Recommendation Algorithm
+ * Uses normalized 'historical_cutoffs' collection
+ */
+export async function generateEngineeringRecommendations(studentProfile: any) {
     const rank = studentProfile.generalMeritRank;
     const categories = studentProfile.eligibleCategories || ['GM']; // Default to GM if empty
 
@@ -320,6 +328,116 @@ function assignTier(probability: number): 'SAFE' | 'TARGET' | 'REACH' {
     if (probability >= 80) return 'SAFE';
     if (probability >= 40) return 'TARGET';
     return 'REACH';
+}
+
+/**
+ * Farm Science Recommendation Algorithm
+ * Uses 'farm_agri' collection (Wide format with category columns)
+ */
+async function generateFarmRecommendations(studentProfile: any) {
+    const rank = studentProfile.practicalRank || studentProfile.generalMeritRank; // Farm often uses Practical/Special Rank
+    const baseCategory = studentProfile.baseCategory || 'GM';
+
+    // Map baseCategory to attribute name (e.g. '2AH' -> 'attr_2ah')
+    // Assuming the user selected a specific category variant like '2AH' in the UI.
+    // If they just selected '2A', we might need to default to '2AG' or similar, 
+    // but the UI now provides exact codes.
+    const categoryAttr = sanitizeAttributeId(baseCategory);
+
+    // Search Range
+    const minRank = Math.max(1, rank - 10000);
+    const maxRank = rank + 5000;
+
+    console.log(`[FARM] Searching '${categoryAttr}' between ${minRank}-${maxRank} for rank ${rank}`);
+
+    // Pagination
+    const limit = 500;
+
+    try {
+        const result = await databases.listDocuments(
+            config.databaseId,
+            'farm_agri',
+            [
+                // Query where the specific category column is within range
+                Query.greaterThanEqual(categoryAttr, minRank),
+                Query.lessThanEqual(categoryAttr, maxRank),
+                Query.limit(limit)
+            ]
+        );
+
+        const recommendations: RecommendationInfo[] = result.documents.map((doc: any) => {
+            const cutoff = doc[categoryAttr];
+            const difference = cutoff - rank;
+            const probability = calculateProbability(difference);
+            const tier = assignTier(probability);
+
+            return {
+                optionId: doc.$id,
+                collegeCode: doc.college_id || 'UNKNOWN',
+                collegeName: doc.college || 'Unknown College',
+                branchCode: doc.branch || 'UNK',
+                branchName: doc.branch || 'Farm Science',
+                category: baseCategory,
+                cutoffRank: cutoff,
+                probability,
+                tier,
+                year: 2024, // Assuming latest
+                round: 1
+            };
+        });
+
+        // Deduplicate & Sort (Logic similar to standard)
+        // Group by College+Branch, take best probability
+        const uniqueOptionsMap = new Map<string, RecommendationInfo>();
+        recommendations.forEach(opt => {
+            const key = `${opt.collegeCode}-${opt.branchCode}`;
+            if (!uniqueOptionsMap.has(key) || opt.probability > uniqueOptionsMap.get(key)!.probability) {
+                uniqueOptionsMap.set(key, opt);
+            }
+        });
+
+        const dedupedList = Array.from(uniqueOptionsMap.values());
+
+        // Sort: Probability ASC (Reach -> Safe? No, user wants Best first? 
+        // Code follows: Probability Low (20) to High (95)? 
+        // Existing code sorted Probability ASC. I will keep consistency.
+        dedupedList.sort((a, b) => {
+            if (a.probability !== b.probability) return a.probability - b.probability;
+            return b.cutoffRank - a.cutoffRank;
+        });
+
+        const summary: RecommendationSummary = {
+            reach: dedupedList.filter(o => o.tier === 'REACH').length,
+            target: dedupedList.filter(o => o.tier === 'TARGET').length,
+            safe: dedupedList.filter(o => o.tier === 'SAFE').length
+        };
+
+        const listScore = calculateListScore(summary);
+
+        return {
+            success: true,
+            data: {
+                recommendations: dedupedList,
+                summary,
+                listScore
+            }
+        };
+
+    } catch (error: any) {
+        console.error('Farm generation error:', error);
+        // Fallback or empty return
+        return { success: false, error: 'Failed to generate farm options: ' + error.message };
+    }
+}
+
+function sanitizeAttributeId(header: string): string {
+    // Matches logic in import_farm_agri.ts
+    let sanitized = header.trim().replace(/[^a-zA-Z0-9]/g, '_');
+    if (/^[0-9]/.test(sanitized)) {
+        sanitized = 'attr_' + sanitized;
+    }
+    if (sanitized.length > 32) sanitized = sanitized.substring(0, 32);
+    return sanitized.toLowerCase();
 }
 
 function calculateListScore(summary: RecommendationSummary, preferences?: any): number {
