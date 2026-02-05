@@ -137,7 +137,8 @@ export const CollegesSchema = {
 
     attributes: [
         // Primary identification
-        { key: 'collegeCode', type: 'string', size: 10, required: true },
+        { key: 'collegeId', type: 'string', size: 36, required: true },
+        { key: 'collegeCode', type: 'string', size: 20, required: true },
         { key: 'collegeName', type: 'string', size: 500, required: true },
 
         // Location
@@ -145,14 +146,13 @@ export const CollegesSchema = {
         { key: 'district', type: 'string', size: 100, required: true },
 
         // Classification
-        { key: 'collegeType', type: 'string', size: 50, required: true }, // Government, VTU Private, etc.
-        { key: 'counsellingTypes', type: 'string', size: 100, required: true }, // JSON array
+        { key: 'collegeType', type: 'string', size: 50, required: true },
 
         // Additional info
-        { key: 'address', type: 'string', size: 500, required: false },
-        { key: 'website', type: 'url', required: false },
+        { key: 'address', type: 'string', size: 1000, required: false }, // Text
+        { key: 'website', type: 'string', size: 255, required: false }, // Varchar
         { key: 'established', type: 'integer', required: false },
-        { key: 'accreditation', type: 'string', size: 100, required: false }, // NAAC, NBA grades
+        { key: 'accreditation', type: 'string', size: 50, required: false, array: true }, // Varchar[]
     ],
 
     indexes: [
@@ -160,12 +160,11 @@ export const CollegesSchema = {
         { key: 'idx_collegeName', type: 'fulltext', attributes: ['collegeName'] },
         { key: 'idx_city', type: 'key', attributes: ['city'] },
         { key: 'idx_collegeType', type: 'key', attributes: ['collegeType'] },
-        { key: 'idx_counsellingTypes', type: 'fulltext', attributes: ['counsellingTypes'] },
     ],
 
     permissions: {
-        create: ['admins'], // Only admins can add colleges
-        read: ['any'],      // Public read access
+        create: ['admins'],
+        read: ['any'],
         update: ['admins'],
         delete: ['admins'],
     }
@@ -186,31 +185,25 @@ export const CollegeCoursesSchema = {
     collectionName: 'College Courses',
 
     attributes: [
-        // Foreign Key
+        // Primary Identification
+        { key: 'courseId', type: 'string', size: 36, required: true },
         { key: 'collegeId', type: 'string', size: 36, required: true },
-        { key: 'collegeCode', type: 'string', size: 10, required: true }, // Denormalized for fast lookup
 
-        // Course Information
-        { key: 'courseType', type: 'string', size: 100, required: true }, // Engineering, MBBS, etc.
-        { key: 'branchName', type: 'string', size: 200, required: false }, // Computer Science, Mechanical, etc.
-        { key: 'branchCode', type: 'string', size: 10, required: false }, // CS, ME, etc.
+        // Course Info
+        { key: 'courseType', type: 'string', size: 100, required: true },
+        { key: 'branchCode', type: 'string', size: 20, required: true },
+        { key: 'branchName', type: 'string', size: 200, required: true },
 
-        // Seat Information
-        { key: 'availableSeatTypes', type: 'string', size: 50, required: true }, // JSON array: ['G', 'A', 'P']
-        { key: 'totalSeats', type: 'integer', required: true },
+        // Metadata
         { key: 'intake', type: 'integer', required: false },
-
-        // Additional info
-        { key: 'accreditation', type: 'string', size: 100, required: false }, // NBA accredited, etc.
-        { key: 'affiliatedTo', type: 'string', size: 100, required: false }, // VTU, etc.
     ],
 
     indexes: [
         { key: 'idx_collegeId', type: 'key', attributes: ['collegeId'] },
-        { key: 'idx_collegeCode', type: 'key', attributes: ['collegeCode'] },
+        { key: 'idx_courseId', type: 'unique', attributes: ['courseId'] },
         { key: 'idx_courseType', type: 'key', attributes: ['courseType'] },
         { key: 'idx_branchCode', type: 'key', attributes: ['branchCode'] },
-        { key: 'idx_composite', type: 'key', attributes: ['collegeCode', 'courseType', 'branchCode'] },
+        { key: 'idx_composite', type: 'key', attributes: ['collegeId', 'courseType', 'branchCode'] },
     ],
 
     permissions: {
