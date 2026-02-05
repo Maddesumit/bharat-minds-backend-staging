@@ -4,6 +4,52 @@ import { databases, config } from '../config/appwrite.config';
 import { CounsellingType } from '../types/domain.types';
 
 // ============================================================================
+// DATABASE HELPERS WITH TIMEOUT & RETRY
+// ============================================================================
+
+/**
+ * Wrapper for database operations with timeout and retry logic
+ */
+async function withRetry<T>(
+    operation: () => Promise<T>,
+    maxRetries: number = 3,
+    timeoutMs: number = 30000
+): Promise<T> {
+    let lastError: any;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            // Create a timeout promise
+            const timeoutPromise = new Promise<never>((_, reject) => {
+                setTimeout(() => reject(new Error('Operation timeout')), timeoutMs);
+            });
+
+            // Race between the operation and timeout
+            const result = await Promise.race([
+                operation(),
+                timeoutPromise
+            ]);
+
+            return result;
+        } catch (error: any) {
+            lastError = error;
+            console.error(`Attempt ${attempt}/${maxRetries} failed:`, error.message);
+
+            // Don't retry on the last attempt
+            if (attempt < maxRetries) {
+                // Exponential backoff: 1s, 2s, 4s
+                const delay = Math.pow(2, attempt - 1) * 1000;
+                console.log(`Retrying in ${delay}ms...`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+            }
+        }
+    }
+
+    throw lastError;
+}
+
+
+// ============================================================================
 // TYPES & INTERFACES
 // ============================================================================
 
@@ -155,10 +201,13 @@ export async function getStudentRanks(userId: string) {
 export async function generateOptionList(userId: string) {
     try {
         // 1. Fetch Student Profile
-        const profileDocs = await databases.listDocuments(
-            config.databaseId,
-            'student_profiles_v2',
-            [Query.equal('userId', userId)]
+        console.log(`Fetching profile for user: ${userId}`);
+        const profileDocs = await withRetry(() =>
+            databases.listDocuments(
+                config.databaseId,
+                'student_profiles_v2',
+                [Query.equal('userId', userId)]
+            )
         );
 
         if (profileDocs.documents.length === 0) {
@@ -220,14 +269,18 @@ export async function generateEngineeringRecommendations(studentProfile: any) {
 
     // Pagination handling (fetch up to a reasonable limit, e.g., 500)
     const limit = 500;
-    const result = await databases.listDocuments(
-        config.databaseId,
-        'historical_cutoffs',
-        [
-            Query.greaterThanEqual('cutoffRank', minRank),
-            Query.lessThanEqual('cutoffRank', maxRank),
-            Query.limit(limit)
-        ]
+
+    console.log('Fetching cutoff data from database...');
+    const result = await withRetry(() =>
+        databases.listDocuments(
+            config.databaseId,
+            'historical_cutoffs',
+            [
+                Query.greaterThanEqual('cutoffRank', minRank),
+                Query.lessThanEqual('cutoffRank', maxRank),
+                Query.limit(limit)
+            ]
+        )
     );
 
     // Filter in memory for categories
@@ -354,15 +407,18 @@ async function generateFarmRecommendations(studentProfile: any) {
     const limit = 500;
 
     try {
-        const result = await databases.listDocuments(
-            config.databaseId,
-            'farm_agri',
-            [
-                // Query where the specific category column is within range
-                Query.greaterThanEqual(categoryAttr, minRank),
-                Query.lessThanEqual(categoryAttr, maxRank),
-                Query.limit(limit)
-            ]
+        console.log('Fetching farm science data from database...');
+        const result = await withRetry(() =>
+            databases.listDocuments(
+                config.databaseId,
+                'farm_agri',
+                [
+                    // Query where the specific category column is within range
+                    Query.greaterThanEqual(categoryAttr, minRank),
+                    Query.lessThanEqual(categoryAttr, maxRank),
+                    Query.limit(limit)
+                ]
+            )
         );
 
         const recommendations: RecommendationInfo[] = result.documents.map((doc: any) => {

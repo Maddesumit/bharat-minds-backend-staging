@@ -6,8 +6,11 @@ dotenv.config();
 // Initialize Appwrite Client
 const client = new Client();
 
+// Use environment variable for endpoint, with fallback
+const endpoint = process.env.APPWRITE_ENDPOINT || 'https://cloud.appwrite.io/v1';
+
 client
-    .setEndpoint(process.env.APPWRITE_ENDPOINT || 'https://cloud.appwrite.io/v1')
+    .setEndpoint(endpoint)
     .setProject(process.env.APPWRITE_PROJECT_ID || '')
     .setKey(process.env.APPWRITE_API_KEY || '');
 
@@ -19,7 +22,7 @@ export const storage = new Storage(client);
 
 // Configuration Constants
 export const config = {
-    endpoint: process.env.APPWRITE_ENDPOINT || 'https://cloud.appwrite.io/v1',
+    endpoint: endpoint,
     projectId: process.env.APPWRITE_PROJECT_ID || '',
     apiKey: process.env.APPWRITE_API_KEY || '',
     databaseId: process.env.APPWRITE_DATABASE_ID || 'main_db',
