@@ -10,7 +10,7 @@ import { createCollectionSafe, createAttributeSafe, createIndexSafe, wait } from
 export async function setupHistoricalCutoffs(databases: Databases, databaseId: string) {
     const collectionId = 'historical_cutoffs';
 
-    await createCollectionSafe(databases, databaseId, collectionId, 'Historical Cutoffs');
+    await createCollectionSafe(databases, databaseId, collectionId, 'Past Engineering Cutoff');
     await wait(2000);
 
     // Identifiers

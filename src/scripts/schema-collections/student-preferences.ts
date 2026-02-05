@@ -10,7 +10,7 @@ import { createCollectionSafe, createAttributeSafe, createIndexSafe, wait } from
 export async function setupStudentPreferences(databases: Databases, databaseId: string) {
     const collectionId = 'student_preferences_v2';
 
-    await createCollectionSafe(databases, databaseId, collectionId, 'Student Preferences V2 (Normalized)');
+    await createCollectionSafe(databases, databaseId, collectionId, 'Engineering Preference');
     await wait(2000);
 
     // Identity

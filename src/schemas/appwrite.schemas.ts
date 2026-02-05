@@ -10,7 +10,7 @@
  * 3. colleges - College master data
  * 4. college_courses - Courses offered by colleges
  * 5. user_preferences - User's option entry preferences
- * 6. cutoff_data - Historical cutoff data (for future prediction)
+ * 6. cutoff_data - DELETED
  * 
  * INDEXING STRATEGY:
  * - Primary keys: Always indexed
@@ -27,7 +27,7 @@
  * User Profiles Collection
  * 
  * Collection ID: user_profiles
- * Purpose: Store user identity and eligibility information
+ * Collection Name: "User Profiles"
  */
 export const UserProfilesSchema = {
     collectionId: 'user_profiles',
@@ -89,7 +89,7 @@ export const UserProfilesSchema = {
  */
 export const StudentRanksSchema = {
     collectionId: 'student_ranks',
-    collectionName: 'Student Ranks',
+    collectionName: 'Student_OptionEntry_Farm_Agri',
 
     attributes: [
         // Composite Key
@@ -133,7 +133,7 @@ export const StudentRanksSchema = {
  */
 export const CollegesSchema = {
     collectionId: 'colleges',
-    collectionName: 'Colleges',
+    collectionName: 'Engineering Colleges',
 
     attributes: [
         // Primary identification
@@ -149,10 +149,10 @@ export const CollegesSchema = {
         { key: 'collegeType', type: 'string', size: 50, required: true },
 
         // Additional info
-        { key: 'address', type: 'string', size: 1000, required: false }, // Text
-        { key: 'website', type: 'string', size: 255, required: false }, // Varchar
+        { key: 'address', type: 'string', size: 1000, required: false },
+        { key: 'website', type: 'string', size: 255, required: false },
         { key: 'established', type: 'integer', required: false },
-        { key: 'accreditation', type: 'string', size: 50, required: false, array: true }, // Varchar[]
+        { key: 'accreditation', type: 'string', size: 50, required: false, array: true },
     ],
 
     indexes: [
@@ -182,7 +182,7 @@ export const CollegesSchema = {
  */
 export const CollegeCoursesSchema = {
     collectionId: 'college_courses',
-    collectionName: 'College Courses',
+    collectionName: 'Engineering College Courses',
 
     attributes: [
         // Primary Identification
@@ -258,53 +258,6 @@ export const UserPreferencesSchema = {
 };
 
 // ============================================================================
-// COLLECTION 6: cutoff_data (Future: Prediction Engine)
-// ============================================================================
-
-/**
- * Cutoff Data Collection
- * 
- * Collection ID: cutoff_data
- * Purpose: Historical cutoff data for prediction algorithms
- */
-export const CutoffDataSchema = {
-    collectionId: 'cutoff_data',
-    collectionName: 'Cutoff Data',
-
-    attributes: [
-        // Reference keys
-        { key: 'collegeId', type: 'string', size: 36, required: true },
-        { key: 'collegeCode', type: 'string', size: 10, required: true },
-        { key: 'courseId', type: 'string', size: 36, required: true },
-
-        // Cutoff Information
-        { key: 'category', type: 'string', size: 10, required: true }, // 2AG, 2AK, etc.
-        { key: 'seatType', type: 'string', size: 5, required: true }, // G, P, Q, etc.
-        { key: 'round', type: 'integer', required: true }, // 1, 2, 3
-        { key: 'year', type: 'integer', required: true },
-        { key: 'closingRank', type: 'integer', required: true },
-
-        // Additional context
-        { key: 'totalSeatsAvailable', type: 'integer', required: false },
-        { key: 'seatsFilled', type: 'integer', required: false },
-    ],
-
-    indexes: [
-        { key: 'idx_collegeCode', type: 'key', attributes: ['collegeCode'] },
-        { key: 'idx_category', type: 'key', attributes: ['category'] },
-        { key: 'idx_year', type: 'key', attributes: ['year'] },
-        { key: 'idx_composite', type: 'key', attributes: ['collegeCode', 'courseId', 'category', 'year'] },
-    ],
-
-    permissions: {
-        create: ['admins'],
-        read: ['any'],
-        update: ['admins'],
-        delete: ['admins'],
-    }
-};
-
-// ============================================================================
 // SCHEMA EXPORT AND DOCUMENTATION
 // ============================================================================
 
@@ -317,7 +270,6 @@ export const AppwriteSchemas = {
     colleges: CollegesSchema,
     collegeCourses: CollegeCoursesSchema,
     userPreferences: UserPreferencesSchema,
-    cutoffData: CutoffDataSchema,
 };
 
 /**
