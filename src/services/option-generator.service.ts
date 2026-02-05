@@ -215,17 +215,21 @@ export async function generateOptionList(userId: string) {
         }
 
         const profile = profileDocs.documents[0];
-        const rank = profile.generalMeritRank || 0;
+        const courseCategory = profile.courseCategory || '';
 
-        // 2. Determine Farming vs Standard
-        // For this implementation, we apply the requested farming algorithm
-        // effectively for all requests as requested by the prompt "generate option entry generator algorithm for farming courses"
-        // In a real app, we might switch based on a flag.
+        console.log(`[OPTION GENERATOR] User: ${userId}, Course Category: ${courseCategory}`);
 
-        if (profile.courseCategory === 'Farm Science') {
-            return await generateFarmRecommendations(profile);
+        // 2. Route to appropriate recommendation algorithm based on course category
+        // Farm Science, Veterinary, and Medical use Farm_Agri/Farm_AgriV2 collections
+        // Engineering and other standard courses use historical_cutoffs collection
+
+        if (courseCategory === 'Farm Science' || courseCategory === 'Veterinary' || courseCategory === 'Medical') {
+            console.log(`[ROUTING] Using Farm/Medical algorithm for ${courseCategory}`);
+            return await generateFarmMedicalRecommendations(profile);
         }
 
+        // Default to Engineering/Standard algorithm
+        console.log(`[ROUTING] Using Engineering algorithm for ${courseCategory}`);
         return await generateEngineeringRecommendations(profile);
 
     } catch (error: any) {
@@ -384,106 +388,122 @@ function assignTier(probability: number): 'SAFE' | 'TARGET' | 'REACH' {
 }
 
 /**
- * Farm Science Recommendation Algorithm
- * Uses 'farm_agri' collection (Wide format with category columns)
+ * Farm Science / Veterinary / Medical Recommendation Algorithm
+ * Uses 'Farm_Agri' or 'Farm_AgriV2' collections (Wide format with category columns)
+ * These collections contain data for Farm Science, Veterinary, and Medical courses
  */
-async function generateFarmRecommendations(studentProfile: any) {
-    const rank = studentProfile.practicalRank || studentProfile.generalMeritRank; // Farm often uses Practical/Special Rank
+async function generateFarmMedicalRecommendations(studentProfile: any) {
+    const courseCategory = studentProfile.courseCategory || 'Farm Science';
+    const rank = studentProfile.practicalRank || studentProfile.generalMeritRank; // Farm/Vet/Medical often use Practical/Special Rank
     const baseCategory = studentProfile.baseCategory || 'GM';
 
     // Map baseCategory to attribute name (e.g. '2AH' -> 'attr_2ah')
-    // Assuming the user selected a specific category variant like '2AH' in the UI.
-    // If they just selected '2A', we might need to default to '2AG' or similar, 
-    // but the UI now provides exact codes.
     const categoryAttr = sanitizeAttributeId(baseCategory);
 
     // Search Range
     const minRank = Math.max(1, rank - 10000);
     const maxRank = rank + 5000;
 
-    console.log(`[FARM] Searching '${categoryAttr}' between ${minRank}-${maxRank} for rank ${rank}`);
+    console.log(`[${courseCategory.toUpperCase()}] Searching '${categoryAttr}' between ${minRank}-${maxRank} for rank ${rank}`);
 
     // Pagination
     const limit = 500;
 
-    try {
-        console.log('Fetching farm science data from database...');
-        const result = await withRetry(() =>
-            databases.listDocuments(
-                config.databaseId,
-                'farm_agri',
-                [
-                    // Query where the specific category column is within range
-                    Query.greaterThanEqual(categoryAttr, minRank),
-                    Query.lessThanEqual(categoryAttr, maxRank),
-                    Query.limit(limit)
-                ]
-            )
-        );
+    // Try both Farm_Agri and Farm_AgriV2 collections
+    const collectionsToTry = ['Farm_Agri', 'Farm_AgriV2'];
 
-        const recommendations: RecommendationInfo[] = result.documents.map((doc: any) => {
-            const cutoff = doc[categoryAttr];
-            const difference = cutoff - rank;
-            const probability = calculateProbability(difference);
-            const tier = assignTier(probability);
+    for (const collectionName of collectionsToTry) {
+        try {
+            console.log(`Attempting to fetch from ${collectionName} collection...`);
+            const result = await withRetry(() =>
+                databases.listDocuments(
+                    config.databaseId,
+                    collectionName,
+                    [
+                        // Query where the specific category column is within range
+                        Query.greaterThanEqual(categoryAttr, minRank),
+                        Query.lessThanEqual(categoryAttr, maxRank),
+                        Query.limit(limit)
+                    ]
+                )
+            );
+
+            console.log(`✅ Successfully fetched ${result.documents.length} documents from ${collectionName}`);
+
+            const recommendations: RecommendationInfo[] = result.documents.map((doc: any) => {
+                const cutoff = doc[categoryAttr];
+                const difference = cutoff - rank;
+                const probability = calculateProbability(difference);
+                const tier = assignTier(probability);
+
+                return {
+                    optionId: doc.$id,
+                    collegeCode: doc.college_id || doc.collegeCode || 'UNKNOWN',
+                    collegeName: doc.college || doc.collegeName || 'Unknown College',
+                    branchCode: doc.branch || doc.branchCode || 'UNK',
+                    branchName: doc.branch || doc.branchName || courseCategory,
+                    category: baseCategory,
+                    cutoffRank: cutoff,
+                    probability,
+                    tier,
+                    year: doc.year || 2024, // Use year from document if available
+                    round: doc.round || 1
+                };
+            });
+
+            // Deduplicate & Sort
+            const uniqueOptionsMap = new Map<string, RecommendationInfo>();
+            recommendations.forEach(opt => {
+                const key = `${opt.collegeCode}-${opt.branchCode}`;
+                if (!uniqueOptionsMap.has(key) || opt.probability > uniqueOptionsMap.get(key)!.probability) {
+                    uniqueOptionsMap.set(key, opt);
+                }
+            });
+
+            const dedupedList = Array.from(uniqueOptionsMap.values());
+
+            // Sort by probability (ASC) then cutoff (DESC)
+            dedupedList.sort((a, b) => {
+                if (a.probability !== b.probability) return a.probability - b.probability;
+                return b.cutoffRank - a.cutoffRank;
+            });
+
+            const summary: RecommendationSummary = {
+                reach: dedupedList.filter(o => o.tier === 'REACH').length,
+                target: dedupedList.filter(o => o.tier === 'TARGET').length,
+                safe: dedupedList.filter(o => o.tier === 'SAFE').length
+            };
+
+            const listScore = calculateListScore(summary);
 
             return {
-                optionId: doc.$id,
-                collegeCode: doc.college_id || 'UNKNOWN',
-                collegeName: doc.college || 'Unknown College',
-                branchCode: doc.branch || 'UNK',
-                branchName: doc.branch || 'Farm Science',
-                category: baseCategory,
-                cutoffRank: cutoff,
-                probability,
-                tier,
-                year: 2024, // Assuming latest
-                round: 1
+                success: true,
+                data: {
+                    recommendations: dedupedList,
+                    summary,
+                    listScore
+                }
             };
-        });
 
-        // Deduplicate & Sort (Logic similar to standard)
-        // Group by College+Branch, take best probability
-        const uniqueOptionsMap = new Map<string, RecommendationInfo>();
-        recommendations.forEach(opt => {
-            const key = `${opt.collegeCode}-${opt.branchCode}`;
-            if (!uniqueOptionsMap.has(key) || opt.probability > uniqueOptionsMap.get(key)!.probability) {
-                uniqueOptionsMap.set(key, opt);
+        } catch (error: any) {
+            console.error(`Failed to fetch from ${collectionName}:`, error.message);
+
+            // If this is the last collection to try, return error
+            if (collectionName === collectionsToTry[collectionsToTry.length - 1]) {
+                console.error(`All collection attempts failed for ${courseCategory}`);
+                return {
+                    success: false,
+                    error: `Failed to generate ${courseCategory} options. Collections tried: ${collectionsToTry.join(', ')}. Error: ${error.message}`
+                };
             }
-        });
 
-        const dedupedList = Array.from(uniqueOptionsMap.values());
-
-        // Sort: Probability ASC (Reach -> Safe? No, user wants Best first? 
-        // Code follows: Probability Low (20) to High (95)? 
-        // Existing code sorted Probability ASC. I will keep consistency.
-        dedupedList.sort((a, b) => {
-            if (a.probability !== b.probability) return a.probability - b.probability;
-            return b.cutoffRank - a.cutoffRank;
-        });
-
-        const summary: RecommendationSummary = {
-            reach: dedupedList.filter(o => o.tier === 'REACH').length,
-            target: dedupedList.filter(o => o.tier === 'TARGET').length,
-            safe: dedupedList.filter(o => o.tier === 'SAFE').length
-        };
-
-        const listScore = calculateListScore(summary);
-
-        return {
-            success: true,
-            data: {
-                recommendations: dedupedList,
-                summary,
-                listScore
-            }
-        };
-
-    } catch (error: any) {
-        console.error('Farm generation error:', error);
-        // Fallback or empty return
-        return { success: false, error: 'Failed to generate farm options: ' + error.message };
+            // Otherwise, continue to next collection
+            console.log(`Trying next collection...`);
+        }
     }
+
+    // Fallback (should not reach here)
+    return { success: false, error: `No data found for ${courseCategory}` };
 }
 
 function sanitizeAttributeId(header: string): string {
