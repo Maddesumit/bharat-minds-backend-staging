@@ -6,8 +6,8 @@ import { ID, Permission, Role } from 'node-appwrite';
 import { databases, config, isAppwriteConfigured } from '../config/appwrite.config';
 
 // Collection Name
-const COLLECTION_NAME = "Farm_Agri_V2";
-const COLLECTION_ID = "farm_agri_v2"; // URL-friendly ID
+const COLLECTION_NAME = "Farm_Agri";
+const COLLECTION_ID = "farm_agri"; // URL-friendly ID
 
 // Sanitize Header for Appwrite Attribute ID
 function sanitizeAttributeId(header: string): string {
