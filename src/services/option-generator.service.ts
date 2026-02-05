@@ -16,6 +16,7 @@ export interface RankInput {
     categoryRank?: number;
     theoryRank?: number;
     practicalRank?: number;
+    baseCategory?: string; // Optional, defaults to GM if not provided
 }
 
 export interface RecommendationInfo {
@@ -86,6 +87,9 @@ export async function saveStudentRank(data: RankInput) {
         } else {
             // Create new profile if not exists (should usually exist after auth)
             // This is a fallback
+            const baseCategory = data.baseCategory || 'GM';
+            const rankRange = calculateRankRange(data.generalMeritRank || 0);
+
             await databases.createDocument(
                 config.databaseId,
                 'student_profiles_v2',
@@ -93,6 +97,9 @@ export async function saveStudentRank(data: RankInput) {
                 {
                     userId: data.userId,
                     ...updateData,
+                    baseCategory,
+                    rankRange,
+                    eligibleCategories: [baseCategory],
                     createdAt: new Date().toISOString()
                 }
             );
@@ -102,6 +109,12 @@ export async function saveStudentRank(data: RankInput) {
         console.error('Save student rank error:', error);
         return { success: false, error: error.message || 'Failed to save rank' };
     }
+}
+
+function calculateRankRange(rank: number): string {
+    const start = Math.floor((rank - 1) / 5000) * 5000 + 1;
+    const end = start + 4999;
+    return `${start}-${end}`;
 }
 
 /**
