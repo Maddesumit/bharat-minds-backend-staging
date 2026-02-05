@@ -6,8 +6,8 @@ import { ID, Permission, Role } from 'node-appwrite';
 import { databases, config, isAppwriteConfigured } from '../config/appwrite.config';
 
 // Collection Name
-const COLLECTION_NAME = "Farm_Agri";
-const COLLECTION_ID = "farm_agri"; // URL-friendly ID
+const COLLECTION_NAME = "Farm_Agri_V2";
+const COLLECTION_ID = "farm_agri_v2"; // URL-friendly ID
 
 // Sanitize Header for Appwrite Attribute ID
 function sanitizeAttributeId(header: string): string {
@@ -46,7 +46,7 @@ function detectType(values: string[]): 'string' | 'integer' | 'double' {
         }
     }
     if (!hasValue) return 'string'; // Default to string if empty
-    if (isInt) return 'integer'; // or double, both work. 
+    // Always use double for numbers to avoid precision loss on cutoffs (e.g. 0 vs 0.5)
     return 'double';
 }
 
@@ -150,10 +150,10 @@ async function importFarmAgri() {
     let success = 0;
     let failed = 0;
 
-    // DEBUG: Only first record
-    const debugRecords = records.slice(0, 1);
+    // Process ALL records
+    // const debugRecords = records.slice(0, 1);
 
-    for (const [i, row] of debugRecords.entries()) {
+    for (const [i, row] of records.entries()) {
         try {
             const data: any = {};
             for (const header of headers) {
@@ -181,7 +181,7 @@ async function importFarmAgri() {
             // Correction: We must cast to Number if attribute is numeric.
             // I will improve the script to remember types.
 
-            console.log("Debug payload:", JSON.stringify(data, null, 2));
+            // console.log("Debug payload:", JSON.stringify(data, null, 2));
 
             await databases.createDocument(
                 config.databaseId,
@@ -191,10 +191,13 @@ async function importFarmAgri() {
             );
             success++;
             if (success % 50 === 0) process.stdout.write('.');
+
+            // Delay
+            await new Promise(r => setTimeout(r, 100));
+
         } catch (error: any) {
             failed++;
-            console.error(`\nFailure:`, error);
-            if (error.cause) console.error("Cause:", error.cause);
+            console.error(`\n❌ Row ${i + 1} Failed: ${error.message}`);
         }
     }
 
