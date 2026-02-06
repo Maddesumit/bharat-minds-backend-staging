@@ -216,7 +216,7 @@ router.delete('/:id', async (req: Request, res: Response) => {
     }
 });
 
-import { generateOptions } from '../services/option-generator.service';
+import { generateOptions } from '../services/multi-course-options.service';
 
 /**
  * Generate options based on rank and preferences
@@ -251,6 +251,81 @@ router.post('/generate-options', async (req: Request, res: Response) => {
 
     } catch (error: any) {
         console.error('Error generating options:', error);
+        return res.status(500).json({
+            success: false,
+            error: error.message || 'Failed to generate options'
+        });
+    }
+});
+
+import { generateMultiCourseOptions } from '../services/multi-course-options.service';
+
+/**
+ * Generate college options for multiple course types
+ * POST /api/preferences/generate-multi-course-options
+ * 
+ * Supports: Engineering, Veterinary, Medical, Agriculture
+ */
+router.post('/generate-multi-course-options', async (req: Request, res: Response) => {
+    try {
+        console.log('🎓 Multi-course options request:', req.body);
+
+        const {
+            rank,
+            category,
+            courseType,
+            branches,
+            locations,
+            degrees,
+            riskLevel
+        } = req.body;
+
+        // Validation
+        if (!rank || !category || !courseType) {
+            return res.status(400).json({
+                success: false,
+                error: 'Rank, Category, and Course Type are required'
+            });
+        }
+
+        // Validate course type
+        const validCourseTypes = ['Engineering', 'Veterinary', 'Medical', 'Agriculture'];
+        if (!validCourseTypes.includes(courseType)) {
+            return res.status(400).json({
+                success: false,
+                error: `Invalid course type. Must be one of: ${validCourseTypes.join(', ')}`
+            });
+        }
+
+        // Generate options
+        const result = await generateMultiCourseOptions({
+            rank: parseInt(rank),
+            category,
+            courseType,
+            branches: branches || [],
+            locations: locations || [],
+            degrees: degrees || [],
+            riskLevel: riskLevel || 'moderate'
+        });
+
+        if (!result.success) {
+            return res.status(500).json(result);
+        }
+
+        return res.json({
+            success: true,
+            courseType: result.courseType,
+            totalOptions: result.totalOptions,
+            summary: result.summary,
+            data: {
+                safe: result.safe,
+                moderate: result.moderate,
+                aggressive: result.aggressive
+            }
+        });
+
+    } catch (error: any) {
+        console.error('❌ Error generating multi-course options:', error);
         return res.status(500).json({
             success: false,
             error: error.message || 'Failed to generate options'

@@ -205,4 +205,115 @@ router.get(
     }
 );
 
+import * as multiCourseCollegeService from '../services/multi-course-college.service';
+
+/**
+ * GET /api/colleges/by-course-type/:courseType
+ * Get colleges by course type (Engineering, Veterinary, Medical, Agriculture)
+ */
+router.get(
+    '/by-course-type/:courseType',
+    [param('courseType').isIn(['Engineering', 'Veterinary', 'Medical', 'Agriculture']).withMessage('Invalid course type')],
+    async (req: Request, res: Response) => {
+        try {
+            const errors = validationResult(req);
+            if (!errors.isEmpty()) {
+                return res.status(400).json({
+                    success: false,
+                    errors: errors.array(),
+                });
+            }
+
+            const filters: any = {
+                courseType: req.params.courseType,
+                location: req.query.location as string,
+                type: req.query.type as string,
+                search: req.query.search as string
+            };
+
+            const result = await multiCourseCollegeService.getCollegesByCourseType(filters);
+
+            if (!result.success) {
+                return res.status(500).json(result);
+            }
+
+            return res.status(200).json(result);
+        } catch (error: any) {
+            console.error('Get colleges by course type error:', error);
+            return res.status(500).json({
+                success: false,
+                error: 'Internal server error',
+            });
+        }
+    }
+);
+
+/**
+ * GET /api/colleges/locations-by-course-type/:courseType
+ * Get unique locations for a course type
+ */
+router.get(
+    '/locations-by-course-type/:courseType',
+    [param('courseType').isIn(['Engineering', 'Veterinary', 'Medical', 'Agriculture']).withMessage('Invalid course type')],
+    async (req: Request, res: Response) => {
+        try {
+            const errors = validationResult(req);
+            if (!errors.isEmpty()) {
+                return res.status(400).json({
+                    success: false,
+                    errors: errors.array(),
+                });
+            }
+
+            const result = await multiCourseCollegeService.getLocationsByCourseType(req.params.courseType);
+
+            if (!result.success) {
+                return res.status(500).json(result);
+            }
+
+            return res.status(200).json(result);
+        } catch (error: any) {
+            console.error('Get locations by course type error:', error);
+            return res.status(500).json({
+                success: false,
+                error: 'Internal server error',
+            });
+        }
+    }
+);
+
+/**
+ * GET /api/colleges/types-by-course-type/:courseType
+ * Get unique college types for a course type
+ */
+router.get(
+    '/types-by-course-type/:courseType',
+    [param('courseType').isIn(['Engineering', 'Veterinary', 'Medical', 'Agriculture']).withMessage('Invalid course type')],
+    async (req: Request, res: Response) => {
+        try {
+            const errors = validationResult(req);
+            if (!errors.isEmpty()) {
+                return res.status(400).json({
+                    success: false,
+                    errors: errors.array(),
+                });
+            }
+
+            const result = await multiCourseCollegeService.getTypesByCourseType(req.params.courseType);
+
+            if (!result.success) {
+                return res.status(500).json(result);
+            }
+
+            return res.status(200).json(result);
+        } catch (error: any) {
+            console.error('Get types by course type error:', error);
+            return res.status(500).json({
+                success: false,
+                error: 'Internal server error',
+            });
+        }
+    }
+);
+
 export default router;
