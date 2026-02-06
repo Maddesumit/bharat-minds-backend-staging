@@ -116,8 +116,8 @@ export async function saveStudentRank(data: RankInput) {
             generalMeritRank: data.generalMeritRank,
             theoryRank: data.theoryRank,
             practicalRank: data.practicalRank,
-            // You might want to store courseCategory specific ranks if schema allowed
-            // optimizing for now by updating the main rank fields
+            courseCategory: data.courseCategory, // CRITICAL: Save the course category!
+            baseCategory: data.baseCategory || 'GM', // Save base category for filtering
             updatedAt: new Date().toISOString()
         };
 
@@ -143,6 +143,7 @@ export async function saveStudentRank(data: RankInput) {
                 {
                     userId: data.userId,
                     ...updateData,
+                    courseCategory: data.courseCategory, // Ensure courseCategory is saved
                     baseCategory,
                     rankRange,
                     eligibleCategories: [baseCategory],
