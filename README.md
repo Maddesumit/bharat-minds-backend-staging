@@ -1,3 +1,7 @@
+# BharatMinds AI - Backend API 🚀
+
+> **Backend-Only Repository**: This repository contains only the Express.js backend API server. 
+> For the frontend Next.js application, see: [bharat-minds-ai-repo](../bharat-minds-ai-repo)
 
 ## 📁 Project Structure
 
