@@ -10,6 +10,9 @@
         "test": "jest",
         "setup:db": "ts-node src/scripts/setup-database.ts",
         "setup:normalized": "ts-node src/scripts/setup-normalized-schema-v2.ts",
+        "setup:counselling": "ts-node src/scripts/setup-normalized-counselling-schema.ts",
+        "import:cutoffs": "ts-node src/scripts/import-normalized-cutoffs.ts",
+        "test:counselling": "ts-node src/scripts/test-normalized-counselling.ts",
         "validate:dual-write": "ts-node src/scripts/validate-dual-write.ts",
         "validate:user": "ts-node src/scripts/validate-dual-write.ts --userId"
     },
