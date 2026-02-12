@@ -63,6 +63,11 @@ export interface RankInput {
     theoryRank?: number;
     practicalRank?: number;
     baseCategory?: string; // Optional, defaults to GM if not provided
+    snq?: boolean;
+    attendedPractical?: boolean;
+    practicalMarks?: number;
+    specialCategories?: string[];
+    incomeSlab?: string;
 }
 
 export interface RecommendationInfo {
@@ -118,6 +123,11 @@ export async function saveStudentRank(data: RankInput) {
             practicalRank: data.practicalRank,
             courseCategory: data.courseCategory, // CRITICAL: Save the course category!
             baseCategory: data.baseCategory || 'GM', // Save base category for filtering
+            snq: data.snq,
+            attendedPractical: data.attendedPractical,
+            practicalMarks: data.practicalMarks,
+            specialCategories: data.specialCategories,
+            incomeSlab: data.incomeSlab,
             updatedAt: new Date().toISOString()
         };
 

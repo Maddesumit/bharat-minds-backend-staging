@@ -141,7 +141,13 @@ router.post('/ranks',
                 generalMeritRank: req.body.generalMeritRank,
                 categoryRank: req.body.categoryRank,
                 theoryRank: req.body.theoryRank,
-                practicalRank: req.body.practicalRank
+                practicalRank: req.body.practicalRank,
+                baseCategory: req.body.baseCategory,
+                snq: req.body.snq,
+                attendedPractical: req.body.attendedPractical,
+                practicalMarks: req.body.practicalMarks,
+                specialCategories: req.body.specialCategories,
+                incomeSlab: req.body.incomeSlab
             };
 
             const result = await saveStudentRank(rankInput);
@@ -227,10 +233,12 @@ router.post('/generate/:userId',
                 return res.status(400).json(result);
             }
 
+            const successResult = result as { success: true; data: any };
+
             res.json({
                 success: true,
-                data: result.data,
-                count: result.data?.length || 0,
+                data: successResult.data,
+                count: successResult.data?.recommendations?.length || 0,
                 message: 'Option list generated successfully'
             });
         } catch (error: any) {
