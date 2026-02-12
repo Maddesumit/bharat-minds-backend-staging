@@ -485,16 +485,6 @@ PORT=3002
 Copyright © 2026 BharatMinds AI
 All rights reserved.
 
----
-
-## 📞 Support
-
-For issues or questions:
-- Check `src/schemas/database.schema.ts` for database structure
-- Review `src/routes/auth.routes.ts` for API endpoints
-- See `src/types/index.ts` for TypeScript types
-
----
 
 **🎉 Backend API is ready to use!**
 
