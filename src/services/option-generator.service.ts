@@ -68,6 +68,7 @@ export interface RankInput {
     practicalMarks?: number;
     specialCategories?: string[];
     incomeSlab?: string;
+    preferredColleges?: string[];
 }
 
 export interface RecommendationInfo {
@@ -128,6 +129,7 @@ export async function saveStudentRank(data: RankInput) {
             practicalMarks: data.practicalMarks,
             specialCategories: data.specialCategories,
             incomeSlab: data.incomeSlab,
+            preferredColleges: data.preferredColleges, // Save preferences
             updatedAt: new Date().toISOString()
         };
 
@@ -172,6 +174,66 @@ function calculateRankRange(rank: number): string {
     const start = Math.floor((rank - 1) / 5000) * 5000 + 1;
     const end = start + 4999;
     return `${start}-${end}`;
+}
+
+/**
+ * Search Colleges
+ */
+export async function searchColleges(queryTerm: string, category: string) {
+    try {
+        const isFarmOrVet = ['Farm Science', 'Veterinary', 'Medical'].includes(category);
+        const collectionId = isFarmOrVet ? 'farming_vet_colleges' : 'colleges';
+
+        const searchAttribute = isFarmOrVet ? 'college_name' : 'collegeName';
+        const codeAttribute = isFarmOrVet ? 'college_id' : 'collegeCode';
+
+        // Prepare queries
+        const queries = [Query.limit(20)];
+
+        // Search by Name
+        const nameQuery = [
+            ...queries,
+            Query.contains(searchAttribute, queryTerm)
+        ];
+
+        // Search by Code (if short enough to likely be a code)
+        // Note: Appwrite OR is not simple in one query, so we run parallel
+        const codeQuery = [
+            ...queries,
+            Query.startsWith(codeAttribute, queryTerm.toUpperCase())
+        ];
+
+        const [nameResults, codeResults] = await Promise.all([
+            databases.listDocuments(config.databaseId, collectionId, nameQuery),
+            queryTerm.length < 6
+                ? databases.listDocuments(config.databaseId, collectionId, codeQuery)
+                : Promise.resolve({ documents: [] })
+        ]);
+
+        // Combine and Deduplicate
+        const combined = [...codeResults.documents, ...nameResults.documents] as any[];
+        const unique = new Map<string, any>();
+
+        combined.forEach(doc => {
+            if (!unique.has(doc.$id)) {
+                unique.set(doc.$id, {
+                    code: doc[codeAttribute],
+                    name: doc[searchAttribute],
+                    city: doc.city || doc.location || doc.district || '',
+                    id: doc.$id
+                });
+            }
+        });
+
+        return {
+            success: true,
+            data: Array.from(unique.values())
+        };
+
+    } catch (error: any) {
+        console.error('Search colleges error:', error);
+        return { success: false, error: error.message };
+    }
 }
 
 /**

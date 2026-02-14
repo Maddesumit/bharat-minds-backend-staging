@@ -6,7 +6,7 @@
  */
 
 import { Router, Request, Response } from 'express';
-import { body, param, validationResult } from 'express-validator';
+import { body, param, query, validationResult } from 'express-validator';
 import {
     saveStudentRank,
     getStudentRanks,
@@ -14,12 +14,41 @@ import {
     getCourseCategoriesForCounselling,
     requiresDualRanks,
     getEngineeringBranches,
-    getFarmScienceCategories
+    getFarmScienceCategories,
+    searchColleges
 } from '../services/option-generator.service';
 
 const router = Router();
 
 // ==================== HELPER ENDPOINTS ====================
+
+/**
+ * GET /api/options/colleges/search
+ * Search colleges by name or code
+ */
+router.get('/colleges/search',
+    [
+        query('q').notEmpty().withMessage('Search query is required'),
+        query('category').optional()
+    ],
+    async (req: Request, res: Response) => {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ success: false, errors: errors.array() });
+        }
+
+        const queryTerm = req.query.q as string;
+        const category = (req.query.category as string) || 'Engineering';
+
+        const result = await searchColleges(queryTerm, category);
+
+        if (!result.success) {
+            return res.status(500).json(result);
+        }
+
+        res.json(result);
+    }
+);
 
 /**
  * GET /api/options/course-categories/:counsellingType
@@ -99,16 +128,8 @@ router.get('/requires-dual-ranks/:courseCategory', (req: Request, res: Response)
  *   "courseCategory": "Engineering",
  *   "branch": "Computer Science",
  *   "generalMeritRank": 12345,
- *   "categoryRank": 6789
- * }
- * 
- * Body (Farm Science/Veterinary - Edge Case):
- * {
- *   "userId": "user123",
- *   "counsellingType": "UGCET",
- *   "courseCategory": "Farm Science",
- *   "theoryRank": 5000,
- *   "practicalRank": 4800
+ *   "categoryRank": 6789,
+ *   "preferredColleges": ["E001", "E002"]
  * }
  */
 router.post('/ranks',
@@ -120,6 +141,7 @@ router.post('/ranks',
         body('courseCategory')
             .notEmpty()
             .withMessage('Course category is required'),
+        body('preferredColleges').optional().isArray(),
         // Conditional validation handled in service layer
     ],
     async (req: Request, res: Response) => {
@@ -147,7 +169,8 @@ router.post('/ranks',
                 attendedPractical: req.body.attendedPractical,
                 practicalMarks: req.body.practicalMarks,
                 specialCategories: req.body.specialCategories,
-                incomeSlab: req.body.incomeSlab
+                incomeSlab: req.body.incomeSlab,
+                preferredColleges: req.body.preferredColleges
             };
 
             const result = await saveStudentRank(rankInput);
