@@ -520,28 +520,39 @@ async function generateFarmMedicalRecommendations(studentProfile: any) {
 function sanitizeAttributeId(header: string): string {
     let code = header.toUpperCase().trim();
 
-    // 1. Handle 'H' suffix from frontend (e.g., '3ARH' -> '3AR')
-    // We assume 'H' is a suffix that can be safely removed to match DB schema
+    // 1. Handle 'H' suffix (e.g., '3ARH' -> '3AR')
     if (code.endsWith('H')) {
         code = code.slice(0, -1);
     }
 
-    // 2. Handle Numeric Categories (1, 2A, 2B, 3A, 3B)
+    // 2. Handle known missing categories by mapping to General equivalent
+    // Based on database schema analysis
+    const FALLBACK_MAP: Record<string, string> = {
+        'GMK': 'GM',   // GMK missing in DB
+        'STK': 'STG',  // STK missing in DB
+        'STR': 'STG',  // STR missing in DB
+        '2AK': '2AG',  // 2AK missing in DB
+        '2AG': '2AG'   // 2AG exists in V2 but maybe not V1? (V1 has 2AR, 2BG...)
+    };
+
+    if (FALLBACK_MAP[code]) {
+        return sanitizeAttributeId(FALLBACK_MAP[code]); // Recursively sanitize the fallback
+    }
+
+    // 3. Handle Numeric Categories (1, 2A, 2B, 3A, 3B)
     if (/^[0-9]/.test(code)) {
-        // If it doesn't end in R (Rural) or K (Kannada), it's General (G)
-        // e.g., '3A' -> '3AG', '1' -> '1G'
+        // If it doesn't end in R or K, it's General (G)
         if (!code.endsWith('R') && !code.endsWith('K')) {
             code += 'G';
         }
         return 'attr_' + code.toLowerCase();
     }
 
-    // 3. Handle Text Categories (GM, SC, ST, C1)
+    // 4. Handle Text Categories (GM, SC, ST, C1)
 
     // GM Handling
     if (code === 'GM') return 'gm';
     if (code === 'GMR') return 'gmr';
-    if (code === 'GMK') return 'gmk'; // Note: might not exist in all tables
 
     // SC/ST Handling
     if (code.startsWith('SC') || code.startsWith('ST')) {
@@ -552,7 +563,7 @@ function sanitizeAttributeId(header: string): string {
         return code.toLowerCase();
     }
 
-    // Fallback for others
+    // Fallback
     return code.toLowerCase();
 }
 
