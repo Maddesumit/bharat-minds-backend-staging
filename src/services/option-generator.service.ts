@@ -118,18 +118,30 @@ export async function saveStudentRank(data: RankInput) {
 
         let profile: any;
 
+        // Map special categories to boolean flags
+        const specialCats = data.specialCategories || [];
+
         const updateData: any = {
             generalMeritRank: data.generalMeritRank,
             theoryRank: data.theoryRank,
             practicalRank: data.practicalRank,
-            courseCategory: data.courseCategory, // CRITICAL: Save the course category!
-            baseCategory: data.baseCategory || 'GM', // Save base category for filtering
-            snq: data.snq,
-            attendedPractical: data.attendedPractical,
-            practicalMarks: data.practicalMarks,
-            specialCategories: data.specialCategories,
-            incomeSlab: data.incomeSlab,
-            preferredColleges: data.preferredColleges, // Save preferences
+            courseCategory: data.courseCategory,
+            baseCategory: data.baseCategory || 'GM',
+
+            // Map frontend fields to DB schema
+            snqEligible: data.snq,           // 'snq' -> 'snqEligible'
+            // Transform 'Slab 1: <Rs 1 lakh' -> 'SLAB_1' to fit 10 char limit
+            snqSlab: data.incomeSlab ? data.incomeSlab.split(':')[0].toUpperCase().replace(' ', '_') : undefined,
+
+            // Map known special category flags
+            ncc: specialCats.includes('NCC'),
+            spo: specialCats.includes('SPO'),
+            def: specialCats.includes('DEF') || specialCats.includes('XD') || specialCats.includes('CAP'), // Map all defence related to 'def'
+            ph: specialCats.includes('PH'),
+
+            // Note: 'attendedPractical', 'practicalMarks', 'preferredColleges' 
+            // are NOT in the current DB schema and are omitted to prevent errors.
+
             updatedAt: new Date().toISOString()
         };
 
@@ -143,8 +155,7 @@ export async function saveStudentRank(data: RankInput) {
             );
             return { success: true, action: 'updated', message: 'Rank updated successfully' };
         } else {
-            // Create new profile if not exists (should usually exist after auth)
-            // This is a fallback
+            // Create new profile if not exists
             const baseCategory = data.baseCategory || 'GM';
             const rankRange = calculateRankRange(data.generalMeritRank || 0);
 
@@ -155,7 +166,7 @@ export async function saveStudentRank(data: RankInput) {
                 {
                     userId: data.userId,
                     ...updateData,
-                    courseCategory: data.courseCategory, // Ensure courseCategory is saved
+                    courseCategory: data.courseCategory,
                     baseCategory,
                     rankRange,
                     eligibleCategories: [baseCategory],
