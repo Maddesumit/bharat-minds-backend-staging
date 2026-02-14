@@ -421,7 +421,7 @@ async function generateFarmMedicalRecommendations(studentProfile: any) {
     const limit = 500;
 
     // Try both Farm_Agri and Farm_AgriV2 collections
-    const collectionsToTry = ['Farm_Agri', 'Farm_AgriV2'];
+    const collectionsToTry = ['farm_agri', 'farm_agri_v2'];
 
     for (const collectionName of collectionsToTry) {
         try {
