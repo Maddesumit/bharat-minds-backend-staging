@@ -518,13 +518,42 @@ async function generateFarmMedicalRecommendations(studentProfile: any) {
 }
 
 function sanitizeAttributeId(header: string): string {
-    // Matches logic in import_farm_agri.ts
-    let sanitized = header.trim().replace(/[^a-zA-Z0-9]/g, '_');
-    if (/^[0-9]/.test(sanitized)) {
-        sanitized = 'attr_' + sanitized;
+    let code = header.toUpperCase().trim();
+
+    // 1. Handle 'H' suffix from frontend (e.g., '3ARH' -> '3AR')
+    // We assume 'H' is a suffix that can be safely removed to match DB schema
+    if (code.endsWith('H')) {
+        code = code.slice(0, -1);
     }
-    if (sanitized.length > 32) sanitized = sanitized.substring(0, 32);
-    return sanitized.toLowerCase();
+
+    // 2. Handle Numeric Categories (1, 2A, 2B, 3A, 3B)
+    if (/^[0-9]/.test(code)) {
+        // If it doesn't end in R (Rural) or K (Kannada), it's General (G)
+        // e.g., '3A' -> '3AG', '1' -> '1G'
+        if (!code.endsWith('R') && !code.endsWith('K')) {
+            code += 'G';
+        }
+        return 'attr_' + code.toLowerCase();
+    }
+
+    // 3. Handle Text Categories (GM, SC, ST, C1)
+
+    // GM Handling
+    if (code === 'GM') return 'gm';
+    if (code === 'GMR') return 'gmr';
+    if (code === 'GMK') return 'gmk'; // Note: might not exist in all tables
+
+    // SC/ST Handling
+    if (code.startsWith('SC') || code.startsWith('ST')) {
+        // SC -> SCG, ST -> STG
+        if (!code.endsWith('R') && !code.endsWith('K')) {
+            code += 'G';
+        }
+        return code.toLowerCase();
+    }
+
+    // Fallback for others
+    return code.toLowerCase();
 }
 
 function calculateListScore(summary: RecommendationSummary, preferences?: any): number {
