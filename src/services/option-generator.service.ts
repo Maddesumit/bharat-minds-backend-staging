@@ -334,8 +334,8 @@ export async function generateEngineeringRecommendations(studentProfile: any) {
     const categories = studentProfile.eligibleCategories || ['GM']; // Default to GM if empty
 
     // Step 2: Calculate Search Range
-    const minRank = Math.max(1, rank - 10000);
-    const maxRank = rank + 5000;
+    // Step 2: Calculate Search Range
+    const { minRank, maxRank } = calculateSearchRange(rank);
 
     console.log(`Searching cutoffs between ${minRank} and ${maxRank} for rank ${rank}`);
 
@@ -485,8 +485,8 @@ async function generateFarmMedicalRecommendations(studentProfile: any) {
     const categoryAttr = sanitizeAttributeId(baseCategory);
 
     // Search Range
-    const minRank = Math.max(1, rank - 10000);
-    const maxRank = rank + 5000;
+    // Search Range
+    const { minRank, maxRank } = calculateSearchRange(rank);
 
     console.log(`[${courseCategory.toUpperCase()}] Searching '${categoryAttr}' between ${minRank}-${maxRank} for rank ${rank}`);
 
@@ -684,4 +684,18 @@ export function getFarmScienceCategories() {
 export function requiresDualRanks(category: string) {
     const dualRankCategories = ['Farm Science', 'Veterinary'];
     return dualRankCategories.includes(category);
+}
+
+/**
+ * Calculate search range for college queries
+ * Lower bound: -10,000 (min 1)
+ * Upper bound: +5,000
+ * 
+ * @param rank Student's rank
+ * @returns {minRank, maxRank}
+ */
+export function calculateSearchRange(rank: number): { minRank: number; maxRank: number } {
+    const minRank = Math.max(1, rank - 10000);
+    const maxRank = rank + 5000;
+    return { minRank, maxRank };
 }
