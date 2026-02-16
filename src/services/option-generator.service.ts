@@ -323,6 +323,42 @@ export async function generateOptionList(userId: string) {
 }
 
 /**
+ * Search Options for Student (Specific College Search)
+ * Searches for colleges matching the query and calculates customized probabilities
+ */
+export async function searchStudentOptions(userId: string, queryTerm: string) {
+    try {
+        console.log(`Searching options for user: ${userId}, query: ${queryTerm}`);
+
+        // 1. Fetch Student Profile
+        const profileDocs = await databases.listDocuments(
+            config.databaseId,
+            'student_profiles_v2',
+            [Query.equal('userId', userId)]
+        );
+
+        if (profileDocs.documents.length === 0) {
+            return { success: false, error: 'Profile not found' };
+        }
+
+        const profile = profileDocs.documents[0];
+        const courseCategory = profile.courseCategory || '';
+        const isFarmOrVet = ['Farm Science', 'Veterinary', 'Medical'].includes(courseCategory);
+
+        // 2. Perform Search based on category
+        if (isFarmOrVet) {
+            return await searchFarmMedicalOptions(profile, queryTerm);
+        } else {
+            return await searchEngineeringOptions(profile, queryTerm);
+        }
+
+    } catch (error: any) {
+        console.error('Search student options error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
  * Farming Course Recommendation Algorithm
  */
 /**
@@ -650,7 +686,182 @@ function calculateListScore(summary: RecommendationSummary, preferences?: any): 
 }
 
 
+/**
+ * Search Engineering Options
+ */
+async function searchEngineeringOptions(studentProfile: any, queryTerm: string) {
+    const rank = studentProfile.generalMeritRank;
+    const categories = studentProfile.eligibleCategories || ['GM'];
+    
+    // We search across ALL ranks, but filter by name/code
+    const targetCategories = new Set([...categories, 'GM', 'GMK', 'GMR', 'GMH']);
+    const categoryList = Array.from(targetCategories);
+
+    // Queries
+    const queries = [Query.limit(50)]; 
+
+    // Try finding by name
+    const nameResult = await databases.listDocuments(
+         config.databaseId,
+         'historical_cutoffs',
+         [
+             ...queries,
+             Query.contains('collegeName', queryTerm)
+         ]
+    );
+
+    // Try finding by code
+    const codeResult = await databases.listDocuments(
+        config.databaseId,
+        'historical_cutoffs',
+        [
+            ...queries,
+            Query.search('collegeCode', queryTerm) 
+        ]
+    );
+
+    const allDocs = [...nameResult.documents, ...codeResult.documents];
+    
+    // Filter by Category
+    const validDocs = allDocs.filter((doc: any) => categoryList.includes(doc.category));
+
+    // Process results
+    const uniqueOptionsMap = new Map<string, RecommendationInfo>();
+
+    validDocs.forEach((doc: any) => {
+         const difference = doc.cutoffRank - rank;
+         const probability = calculateProbability(difference);
+         const tier = assignTier(probability);
+
+         const opt: RecommendationInfo = {
+             optionId: doc.$id,
+             collegeCode: doc.collegeCode || 'Unknown',
+             collegeName: doc.collegeName || 'Unknown College',
+             branchCode: doc.branchCode || 'Unknown',
+             branchName: doc.branchName || 'Unknown Branch',
+             category: doc.category,
+             cutoffRank: doc.cutoffRank,
+             probability,
+             tier,
+             year: doc.academicYear,
+             round: doc.round
+         };
+
+         const key = `${opt.collegeCode}-${opt.branchCode}`;
+         // Keep best probability
+         if (!uniqueOptionsMap.has(key) || opt.probability > uniqueOptionsMap.get(key)!.probability) {
+             uniqueOptionsMap.set(key, opt);
+         }
+    });
+
+    const recommendations = Array.from(uniqueOptionsMap.values());
+    
+    recommendations.sort((a, b) => {
+         if (a.probability !== b.probability) return a.probability - b.probability;
+         return b.cutoffRank - a.cutoffRank;
+    });
+
+    return {
+        success: true,
+        data: {
+             recommendations,
+             summary: calculateSummary(recommendations),
+             listScore: 0 
+        }
+    };
+}
+
+/**
+ * Search Farm/Medical Options
+ */
+async function searchFarmMedicalOptions(studentProfile: any, queryTerm: string) {
+    const courseCategory = studentProfile.courseCategory || 'Farm Science';
+    const rank = studentProfile.practicalRank || studentProfile.generalMeritRank;
+    const baseCategory = studentProfile.baseCategory || 'GM';
+    const categoryAttr = sanitizeAttributeId(baseCategory);
+
+    const collectionsToTry = ['farm_agri', 'farm_agri_v2'];
+    const uniqueOptionsMap = new Map<string, RecommendationInfo>();
+
+    for (const collectionName of collectionsToTry) {
+        try {
+            // Search by Name
+            const nameResult = await databases.listDocuments(
+                config.databaseId,
+                collectionName,
+                [Query.contains('college', queryTerm), Query.limit(50)]
+            );
+
+             // Search by Code (farm_agri uses 'college_id')
+            let codeResult: any = { documents: [] };
+            if (queryTerm.length < 10) {
+                 codeResult = await databases.listDocuments(
+                    config.databaseId,
+                    collectionName,
+                    [Query.search('college_id', queryTerm), Query.limit(50)]
+                );
+            }
+
+            const allDocs = [...nameResult.documents, ...codeResult.documents];
+
+            allDocs.forEach((doc: any) => {
+                const cutoff = doc[categoryAttr];
+                if (!cutoff) return; // Skip if no cutoff for this category
+
+                const difference = cutoff - rank;
+                const probability = calculateProbability(difference);
+                const tier = assignTier(probability);
+
+                const opt: RecommendationInfo = {
+                    optionId: doc.$id,
+                    collegeCode: doc.college_id || doc.collegeCode || 'UNKNOWN',
+                    collegeName: doc.college || doc.collegeName || 'Unknown College',
+                    branchCode: doc.branch || doc.branchCode || 'UNK',
+                    branchName: doc.branch || doc.branchName || courseCategory,
+                    category: baseCategory,
+                    cutoffRank: cutoff,
+                    probability,
+                    tier,
+                    year: doc.year || 2024,
+                    round: doc.round || 1
+                };
+
+                const key = `${opt.collegeCode}-${opt.branchCode}`;
+                if (!uniqueOptionsMap.has(key) || opt.probability > uniqueOptionsMap.get(key)!.probability) {
+                    uniqueOptionsMap.set(key, opt);
+                }
+            });
+        } catch (e) {
+            console.error(`Error searching ${collectionName}:`, e);
+        }
+    }
+
+    const recommendations = Array.from(uniqueOptionsMap.values());
+    recommendations.sort((a, b) => {
+         if (a.probability !== b.probability) return a.probability - b.probability;
+         return b.cutoffRank - a.cutoffRank;
+    });
+
+    return {
+        success: true,
+        data: {
+             recommendations,
+             summary: calculateSummary(recommendations),
+             listScore: 0
+        }
+    };
+}
+
+function calculateSummary(list: RecommendationInfo[]): RecommendationSummary {
+    return {
+        reach: list.filter(o => o.tier === 'REACH').length,
+        target: list.filter(o => o.tier === 'TARGET').length,
+        safe: list.filter(o => o.tier === 'SAFE').length
+    };
+}
+
 // ============================================================================
+
 // HELPER LOOKUPS
 // ============================================================================
 

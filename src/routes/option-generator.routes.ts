@@ -15,7 +15,8 @@ import {
     requiresDualRanks,
     getEngineeringBranches,
     getFarmScienceCategories,
-    searchColleges
+    searchColleges,
+    searchStudentOptions
 } from '../services/option-generator.service';
 
 const router = Router();
@@ -41,6 +42,34 @@ router.get('/colleges/search',
         const category = (req.query.category as string) || 'Engineering';
 
         const result = await searchColleges(queryTerm, category);
+
+        if (!result.success) {
+            return res.status(500).json(result);
+        }
+
+        res.json(result);
+    }
+);
+
+/**
+ * GET /api/options/search-recommendations
+ * Search specifically for recommendations (with cutoffs) by college name/code
+ */
+router.get('/search-recommendations',
+    [
+        query('userId').notEmpty().withMessage('User ID is required'),
+        query('q').notEmpty().withMessage('Search query is required')
+    ],
+    async (req: Request, res: Response) => {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ success: false, errors: errors.array() });
+        }
+
+        const userId = req.query.userId as string;
+        const queryTerm = req.query.q as string;
+
+        const result = await searchStudentOptions(userId, queryTerm);
 
         if (!result.success) {
             return res.status(500).json(result);
