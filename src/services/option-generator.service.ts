@@ -208,30 +208,90 @@ export async function searchColleges(queryTerm: string, category: string) {
         ];
 
         // Search by Code (if short enough to likely be a code)
-        // Note: Appwrite OR is not simple in one query, so we run parallel
         const codeQuery = [
             ...queries,
             Query.startsWith(codeAttribute, queryTerm.toUpperCase())
         ];
 
-        const [nameResults, codeResults] = await Promise.all([
+        // Search by Branch/Course (New)
+        // If searching a course (e.g. "Computer Science"), we check cutoff tables
+        const branchCollectionId = isFarmOrVet ? 'farm_agri' : 'historical_cutoffs';
+        const branchAttribute = isFarmOrVet ? 'branch' : 'branchName';
+        // Note: farm_agri uses 'branch' (e.g. 'Agriculture'), historical_cutoffs uses 'branchName' (e.g. 'Computer Science')
+
+        const branchQuery = [
+            ...queries,
+            Query.contains(branchAttribute, queryTerm) // or Query.search
+        ];
+
+        const [nameResults, codeResults, branchResults] = await Promise.all([
             databases.listDocuments(config.databaseId, collectionId, nameQuery),
             queryTerm.length < 6
                 ? databases.listDocuments(config.databaseId, collectionId, codeQuery)
+                : Promise.resolve({ documents: [] }),
+            // Only search branches if query is long enough to be a meaningful course name
+            queryTerm.length >= 3
+                ? databases.listDocuments(config.databaseId, branchCollectionId, branchQuery)
                 : Promise.resolve({ documents: [] })
         ]);
 
         // Combine and Deduplicate
-        const combined = [...codeResults.documents, ...nameResults.documents] as any[];
+        // Priority: College Name Match > Code Match > Branch Match
         const unique = new Map<string, any>();
 
-        combined.forEach(doc => {
+        // 1. Add Direct Matches (Name/Code)
+        const directMatches = [...codeResults.documents, ...nameResults.documents] as any[];
+        directMatches.forEach(doc => {
             if (!unique.has(doc.$id)) {
                 unique.set(doc.$id, {
                     code: doc[codeAttribute],
                     name: doc[searchAttribute],
                     city: doc.city || doc.location || doc.district || '',
                     id: doc.$id
+                });
+            }
+        });
+
+        // 2. Add Branch Matches
+        // These come from a different collection (cutoffs), so field names differ slightly
+        const branchMatches = branchResults.documents as any[];
+        branchMatches.forEach(doc => {
+            // Mapping from Cutoff Document to College Info
+            // historical_cutoffs: collegeCode, collegeName
+            // farm_agri: college_id, college
+
+            const b_collegeCode = isFarmOrVet ? doc.college_id : doc.collegeCode;
+            const b_collegeName = isFarmOrVet ? doc.college : doc.collegeName;
+            const b_branchName = isFarmOrVet ? doc.branch : doc.branchName;
+
+            // We use collegeCode as a key to check against simplified 'unique' map (but unique uses doc.$id...)
+            // The direct matches used their doc.$id. 
+            // We need to check if we already have this college by CODE.
+
+            // Let's iterate unique values to check for existing code
+            let exists = false;
+            for (const existing of unique.values()) {
+                if (existing.code === b_collegeCode) {
+                    exists = true;
+                    // Optionally append matched course info?
+                    // if (!existing.matchedCourse) existing.matchedCourse = b_branchName;
+                    break;
+                }
+            }
+
+            if (!exists && b_collegeCode && b_collegeName) {
+                // Generate a synthetic ID or use code
+                // Using code as ID for consistency in map if we wanted, 
+                // but we used doc.$id for direct matches.
+                // Let's use `course-match-${code}` as ID to avoid collision with real college IDs (if they differ)
+                const syntheticId = `course-match-${b_collegeCode}`;
+
+                unique.set(syntheticId, {
+                    code: b_collegeCode,
+                    name: b_collegeName,
+                    city: '', // Likely unknown from cutoff doc
+                    id: syntheticId,
+                    matchedCourse: b_branchName // Extra info for frontend
                 });
             }
         });
@@ -692,22 +752,22 @@ function calculateListScore(summary: RecommendationSummary, preferences?: any): 
 async function searchEngineeringOptions(studentProfile: any, queryTerm: string) {
     const rank = studentProfile.generalMeritRank;
     const categories = studentProfile.eligibleCategories || ['GM'];
-    
+
     // We search across ALL ranks, but filter by name/code
     const targetCategories = new Set([...categories, 'GM', 'GMK', 'GMR', 'GMH']);
     const categoryList = Array.from(targetCategories);
 
     // Queries
-    const queries = [Query.limit(50)]; 
+    const queries = [Query.limit(50)];
 
     // Try finding by name
     const nameResult = await databases.listDocuments(
-         config.databaseId,
-         'historical_cutoffs',
-         [
-             ...queries,
-             Query.contains('collegeName', queryTerm)
-         ]
+        config.databaseId,
+        'historical_cutoffs',
+        [
+            ...queries,
+            Query.contains('collegeName', queryTerm)
+        ]
     );
 
     // Try finding by code
@@ -716,12 +776,12 @@ async function searchEngineeringOptions(studentProfile: any, queryTerm: string) 
         'historical_cutoffs',
         [
             ...queries,
-            Query.search('collegeCode', queryTerm) 
+            Query.search('collegeCode', queryTerm)
         ]
     );
 
     const allDocs = [...nameResult.documents, ...codeResult.documents];
-    
+
     // Filter by Category
     const validDocs = allDocs.filter((doc: any) => categoryList.includes(doc.category));
 
@@ -729,44 +789,44 @@ async function searchEngineeringOptions(studentProfile: any, queryTerm: string) 
     const uniqueOptionsMap = new Map<string, RecommendationInfo>();
 
     validDocs.forEach((doc: any) => {
-         const difference = doc.cutoffRank - rank;
-         const probability = calculateProbability(difference);
-         const tier = assignTier(probability);
+        const difference = doc.cutoffRank - rank;
+        const probability = calculateProbability(difference);
+        const tier = assignTier(probability);
 
-         const opt: RecommendationInfo = {
-             optionId: doc.$id,
-             collegeCode: doc.collegeCode || 'Unknown',
-             collegeName: doc.collegeName || 'Unknown College',
-             branchCode: doc.branchCode || 'Unknown',
-             branchName: doc.branchName || 'Unknown Branch',
-             category: doc.category,
-             cutoffRank: doc.cutoffRank,
-             probability,
-             tier,
-             year: doc.academicYear,
-             round: doc.round
-         };
+        const opt: RecommendationInfo = {
+            optionId: doc.$id,
+            collegeCode: doc.collegeCode || 'Unknown',
+            collegeName: doc.collegeName || 'Unknown College',
+            branchCode: doc.branchCode || 'Unknown',
+            branchName: doc.branchName || 'Unknown Branch',
+            category: doc.category,
+            cutoffRank: doc.cutoffRank,
+            probability,
+            tier,
+            year: doc.academicYear,
+            round: doc.round
+        };
 
-         const key = `${opt.collegeCode}-${opt.branchCode}`;
-         // Keep best probability
-         if (!uniqueOptionsMap.has(key) || opt.probability > uniqueOptionsMap.get(key)!.probability) {
-             uniqueOptionsMap.set(key, opt);
-         }
+        const key = `${opt.collegeCode}-${opt.branchCode}`;
+        // Keep best probability
+        if (!uniqueOptionsMap.has(key) || opt.probability > uniqueOptionsMap.get(key)!.probability) {
+            uniqueOptionsMap.set(key, opt);
+        }
     });
 
     const recommendations = Array.from(uniqueOptionsMap.values());
-    
+
     recommendations.sort((a, b) => {
-         if (a.probability !== b.probability) return a.probability - b.probability;
-         return b.cutoffRank - a.cutoffRank;
+        if (a.probability !== b.probability) return a.probability - b.probability;
+        return b.cutoffRank - a.cutoffRank;
     });
 
     return {
         success: true,
         data: {
-             recommendations,
-             summary: calculateSummary(recommendations),
-             listScore: 0 
+            recommendations,
+            summary: calculateSummary(recommendations),
+            listScore: 0
         }
     };
 }
@@ -792,10 +852,10 @@ async function searchFarmMedicalOptions(studentProfile: any, queryTerm: string) 
                 [Query.contains('college', queryTerm), Query.limit(50)]
             );
 
-             // Search by Code (farm_agri uses 'college_id')
+            // Search by Code (farm_agri uses 'college_id')
             let codeResult: any = { documents: [] };
             if (queryTerm.length < 10) {
-                 codeResult = await databases.listDocuments(
+                codeResult = await databases.listDocuments(
                     config.databaseId,
                     collectionName,
                     [Query.search('college_id', queryTerm), Query.limit(50)]
@@ -838,16 +898,16 @@ async function searchFarmMedicalOptions(studentProfile: any, queryTerm: string) 
 
     const recommendations = Array.from(uniqueOptionsMap.values());
     recommendations.sort((a, b) => {
-         if (a.probability !== b.probability) return a.probability - b.probability;
-         return b.cutoffRank - a.cutoffRank;
+        if (a.probability !== b.probability) return a.probability - b.probability;
+        return b.cutoffRank - a.cutoffRank;
     });
 
     return {
         success: true,
         data: {
-             recommendations,
-             summary: calculateSummary(recommendations),
-             listScore: 0
+            recommendations,
+            summary: calculateSummary(recommendations),
+            listScore: 0
         }
     };
 }
