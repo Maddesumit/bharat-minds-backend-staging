@@ -178,15 +178,4 @@ export interface OptionList {
     $updatedAt: string;
 }
 
-export default {
-    ApiResponse,
-    ErrorResponse,
-    RegisterRequest,
-    RegisterResponse,
-    UserProfile,
-    UpdateProfileRequest,
-    StudentData,
-    CourseRank,
-    ScoredCollege,
-    OptionList,
-};
+
