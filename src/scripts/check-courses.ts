@@ -38,7 +38,7 @@ async function checkCourses() {
         });
 
         // Group by category
-        const categories = {};
+        const categories: Record<string, number> = {};
         response.documents.forEach(doc => {
             const cat = doc.courseCategory || 'Unknown';
             categories[cat] = (categories[cat] || 0) + 1;
