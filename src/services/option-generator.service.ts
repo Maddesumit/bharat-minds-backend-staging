@@ -71,6 +71,7 @@ export interface RankInput {
     preferredColleges?: string[];
     preferredLocations?: string[];
     preferredCollegeTypes?: string[];
+    eligibleCategories?: string[]; // New: Calculated Categories
 }
 
 export interface RecommendationInfo {
@@ -145,6 +146,7 @@ export async function saveStudentRank(data: RankInput) {
             // are NOT in the current DB schema and are omitted to prevent errors.
             preferredLocations: data.preferredLocations || [],
             preferredCollegeTypes: data.preferredCollegeTypes || [],
+            eligibleCategories: JSON.stringify(data.eligibleCategories || []),
 
             updatedAt: new Date().toISOString()
         };
