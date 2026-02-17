@@ -161,7 +161,7 @@ export async function deleteRank(userId: string, counsellingType: string, course
     try {
         const existing = await getRank(userId, counsellingType, courseType);
 
-        if (!existing.success) {
+        if (!existing.success || !existing.data) {
             return existing;
         }
 
@@ -270,7 +270,7 @@ export async function getRanksByCounsellingType(userId: string, counsellingType:
             return allRanks;
         }
 
-        const filtered = allRanks.data.filter(
+        const filtered = (allRanks.data || []).filter(
             (rank: any) => rank.counsellingType === counsellingType
         );
 

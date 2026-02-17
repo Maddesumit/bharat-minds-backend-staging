@@ -217,7 +217,7 @@ export async function getCourseAvailability(
 
         const coursesResult = await searchCourses(filters);
 
-        if (!coursesResult.success || coursesResult.data.length === 0) {
+        if (!coursesResult.success || !coursesResult.data || coursesResult.data.length === 0) {
             return {
                 success: false,
                 error: 'Course not found',

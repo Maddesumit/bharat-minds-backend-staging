@@ -47,14 +47,14 @@ export interface CreateCollegeDTO {
  */
 export async function searchColleges(filters: CollegeSearchFilters) {
     try {
-       
+
         const documents = await databases.listDocuments(
             config.databaseId,
             config.collections.colleges,
             [Query.limit(5000)] // Get all colleges (max 5000)
         );
 
-        let results = documents.documents as CollegeDocument[];
+        let results = documents.documents as unknown as CollegeDocument[];
 
         // Apply filters
         if (filters.collegeCode) {
@@ -165,7 +165,7 @@ export async function getCollege(collegeId: string) {
             config.databaseId,
             config.collections.colleges,
             collegeId
-        ) as CollegeDocument;
+        ) as unknown as CollegeDocument;
 
         return {
             success: true,
@@ -193,7 +193,7 @@ export async function listCities() {
             config.collections.colleges
         );
 
-        const cities = [...new Set((documents.documents as CollegeDocument[]).map((doc) => doc.city))];
+        const cities = [...new Set((documents.documents as unknown as CollegeDocument[]).map((doc) => doc.city))];
         cities.sort();
 
         return {
@@ -220,7 +220,7 @@ export async function listDistricts() {
             config.collections.colleges
         );
 
-        const districts = [...new Set((documents.documents as CollegeDocument[]).map((doc) => doc.district))];
+        const districts = [...new Set((documents.documents as unknown as CollegeDocument[]).map((doc) => doc.district))];
         districts.sort();
 
         return {

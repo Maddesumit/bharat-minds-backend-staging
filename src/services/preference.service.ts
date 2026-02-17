@@ -8,7 +8,7 @@
  * - Category must be in user's eligible list
  */
 
-import { ID } from 'node-appwrite';
+import { ID, Models } from 'node-appwrite';
 import { databases, config } from '../config/appwrite.config';
 import { OptionEntry, UserPreferences, ValidationResult, CounsellingType, SeatType, CategoryVariant } from '../types/domain.types';
 import { isCategoryEligible } from './category.service';
@@ -29,6 +29,14 @@ export interface AddPreferenceDTO {
     branchCode?: string;
     seatType: SeatType;
     category: CategoryVariant;
+}
+
+export interface UserPreferenceDocument extends Models.Document {
+    userId: string;
+    counsellingType: CounsellingType;
+    options: string;
+    totalOptions: number;
+    isLocked: boolean;
 }
 
 /**
@@ -166,7 +174,7 @@ export async function getPreferences(userId: string, counsellingType: Counsellin
 
         const prefs = documents.documents.find(
             (doc: any) => doc.userId === userId && doc.counsellingType === counsellingType
-        );
+        ) as unknown as UserPreferenceDocument | undefined;
 
         if (!prefs) {
             return {
@@ -198,7 +206,7 @@ export async function removePreference(userId: string, counsellingType: Counsell
     try {
         const existing = await getPreferences(userId, counsellingType);
 
-        if (!existing.success) {
+        if (!existing.success || !existing.data) {
             return existing;
         }
 
@@ -210,7 +218,7 @@ export async function removePreference(userId: string, counsellingType: Counsell
         }
 
         // Remove the option
-        let options: OptionEntry[] = existing.data.options.filter((opt: OptionEntry) => opt.priority !== priority);
+        let options: OptionEntry[] = existing.data!.options.filter((opt: OptionEntry) => opt.priority !== priority);
 
         // Reorder priorities
         options = options.map((opt, index) => ({
@@ -218,7 +226,7 @@ export async function removePreference(userId: string, counsellingType: Counsell
             priority: index + 1,
         }));
 
-        return await updatePreferencesDocument(existing.data.$id, options);
+        return await updatePreferencesDocument(existing.data!.$id, options);
     } catch (error: any) {
         console.error('Remove preference error:', error);
         return {
@@ -240,18 +248,18 @@ export async function reorderPreferences(
     try {
         const existing = await getPreferences(userId, counsellingType);
 
-        if (!existing.success) {
+        if (!existing.success || !existing.data) {
             return existing;
         }
 
-        if (existing.data.isLocked) {
+        if (existing.data!.isLocked) {
             return {
                 success: false,
                 error: 'Preferences are locked',
             };
         }
 
-        let options: OptionEntry[] = existing.data.options;
+        let options: OptionEntry[] = existing.data!.options;
 
         // Find and move the option
         const movedOption = options.find(opt => opt.priority === fromPriority);
@@ -275,7 +283,7 @@ export async function reorderPreferences(
             priority: index + 1,
         }));
 
-        return await updatePreferencesDocument(existing.data.$id, options);
+        return await updatePreferencesDocument(existing.data!.$id, options);
     } catch (error: any) {
         console.error('Reorder preferences error:', error);
         return {
@@ -292,11 +300,11 @@ export async function lockPreferences(userId: string, counsellingType: Counselli
     try {
         const existing = await getPreferences(userId, counsellingType);
 
-        if (!existing.success) {
+        if (!existing.success || !existing.data) {
             return existing;
         }
 
-        if (existing.data.isLocked) {
+        if (existing.data!.isLocked) {
             return {
                 success: false,
                 error: 'Preferences are already locked',
@@ -304,7 +312,7 @@ export async function lockPreferences(userId: string, counsellingType: Counselli
         }
 
         // Validate before locking
-        const validation = await validatePreferenceList(userId, counsellingType, existing.data.options);
+        const validation = await validatePreferenceList(userId, counsellingType, existing.data!.options);
 
         if (!validation.isValid) {
             return {
@@ -317,7 +325,7 @@ export async function lockPreferences(userId: string, counsellingType: Counselli
         const document = await databases.updateDocument(
             config.databaseId,
             config.collections.userPreferences,
-            existing.data.$id,
+            existing.data!.$id,
             { isLocked: true }
         );
 
@@ -342,14 +350,14 @@ export async function unlockPreferences(userId: string, counsellingType: Counsel
     try {
         const existing = await getPreferences(userId, counsellingType);
 
-        if (!existing.success) {
+        if (!existing.success || !existing.data) {
             return existing;
         }
 
         const document = await databases.updateDocument(
             config.databaseId,
             config.collections.userPreferences,
-            existing.data.$id,
+            existing.data!.$id,
             { isLocked: false }
         );
 
@@ -380,7 +388,7 @@ async function validatePreferenceEntry(
     // Get user profile for eligible categories
     const profile = await getUserProfile(userId);
 
-    if (!profile.success) {
+    if (!profile.success || !profile.data) {
         errors.push('User profile not found');
         return { isValid: false, errors };
     }
@@ -430,7 +438,7 @@ async function validatePreferenceList(
     // Get user profile
     const profile = await getUserProfile(userId);
 
-    if (!profile.success) {
+    if (!profile.success || !profile.data) {
         errors.push('User profile not found');
         return { isValid: false, errors };
     }
