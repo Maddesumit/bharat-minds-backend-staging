@@ -143,8 +143,8 @@ export async function saveStudentRank(data: RankInput) {
 
             // Note: 'attendedPractical', 'practicalMarks'
             // are NOT in the current DB schema and are omitted to prevent errors.
-            preferredLocations: data.preferredLocations || [],  
-            preferredCollegeTypes: data.preferredCollegeTypes || [], 
+            preferredLocations: data.preferredLocations || [],
+            preferredCollegeTypes: data.preferredCollegeTypes || [],
 
             updatedAt: new Date().toISOString()
         };
@@ -409,7 +409,7 @@ export async function searchStudentOptions(userId: string, queryTerm: string) {
 
         const profile = profileDocs.documents[0];
         const courseCategory = profile.courseCategory || '';
-        const isFarmOrVet = ['Farm Science', 'Veterinary', 'Medical'].includes(courseCategory);
+        const isFarmOrVet = ['Farm Science', 'BVsc and AH', 'Medical'].includes(courseCategory);
 
         // 2. Perform Search based on category
         if (isFarmOrVet) {
