@@ -69,6 +69,8 @@ export interface RankInput {
     specialCategories?: string[];
     incomeSlab?: string;
     preferredColleges?: string[];
+    preferredLocations?: string[];
+    preferredCollegeTypes?: string[];
 }
 
 export interface RecommendationInfo {
@@ -139,8 +141,10 @@ export async function saveStudentRank(data: RankInput) {
             def: specialCats.includes('DEF') || specialCats.includes('XD') || specialCats.includes('CAP'), // Map all defence related to 'def'
             ph: specialCats.includes('PH'),
 
-            // Note: 'attendedPractical', 'practicalMarks', 'preferredColleges' 
+            // Note: 'attendedPractical', 'practicalMarks'
             // are NOT in the current DB schema and are omitted to prevent errors.
+            preferredLocations: data.preferredLocations || [],  
+            preferredCollegeTypes: data.preferredCollegeTypes || [], 
 
             updatedAt: new Date().toISOString()
         };
@@ -330,7 +334,9 @@ export async function getStudentRanks(userId: string) {
                 generalMeritRank: profile.generalMeritRank,
                 theoryRank: profile.theoryRank,
                 practicalRank: profile.practicalRank,
-                productCategory: profile.productCategory // assuming field exists or is handled
+                productCategory: profile.productCategory, // assuming field exists or is handled
+                preferredLocations: profile.preferredLocations || [],
+                preferredCollegeTypes: profile.preferredCollegeTypes || []
             }
         };
     } catch (error: any) {

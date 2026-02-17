@@ -171,6 +171,8 @@ router.post('/ranks',
             .notEmpty()
             .withMessage('Course category is required'),
         body('preferredColleges').optional().isArray(),
+        body('preferredLocations').optional().isArray(),
+        body('preferredCollegeTypes').optional().isArray(),
         // Conditional validation handled in service layer
     ],
     async (req: Request, res: Response) => {
@@ -199,7 +201,9 @@ router.post('/ranks',
                 practicalMarks: req.body.practicalMarks,
                 specialCategories: req.body.specialCategories,
                 incomeSlab: req.body.incomeSlab,
-                preferredColleges: req.body.preferredColleges
+                preferredColleges: req.body.preferredColleges,
+                preferredLocations: req.body.preferredLocations,
+                preferredCollegeTypes: req.body.preferredCollegeTypes
             };
 
             const result = await saveStudentRank(rankInput);
