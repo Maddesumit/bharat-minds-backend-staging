@@ -43,6 +43,9 @@ router.get('/colleges/search',
 
         const result = await searchColleges(queryTerm, category);
 
+        // Disable cache to ensure fresh search results
+        res.header('Cache-Control', 'no-store');
+
         if (!result.success) {
             return res.status(500).json(result);
         }

@@ -111,18 +111,7 @@ export interface GenerationResult {
  */
 export async function saveStudentRank(data: RankInput) {
     try {
-        const profileId = data.userId; // Using userId as profile ID based on schema setup
-
-        // Check if profile exists
-        const profileDocs = await databases.listDocuments(
-            config.databaseId,
-            'student_profiles_v2',
-            [Query.equal('userId', data.userId)]
-        );
-
-        let profile: any;
-
-        // Map special categories to boolean flags
+        const userId = data.userId;
         const specialCats = data.specialCategories || [];
 
         const updateData: any = {
@@ -131,56 +120,68 @@ export async function saveStudentRank(data: RankInput) {
             practicalRank: data.practicalRank,
             courseCategory: data.courseCategory,
             baseCategory: data.baseCategory || 'GM',
-
-            // Map frontend fields to DB schema
-            snqEligible: data.snq,           // 'snq' -> 'snqEligible'
-            // Transform 'Slab 1: <Rs 1 lakh' -> 'SLAB_1' to fit 10 char limit
+            snqEligible: data.snq,
             snqSlab: data.incomeSlab ? data.incomeSlab.split(':')[0].toUpperCase().replace(' ', '_') : undefined,
-
-            // Map known special category flags
             ncc: specialCats.includes('NCC'),
             spo: specialCats.includes('SPO'),
-            def: specialCats.includes('DEF') || specialCats.includes('XD') || specialCats.includes('CAP'), // Map all defence related to 'def'
+            def: specialCats.includes('DEF') || specialCats.includes('XD') || specialCats.includes('CAP'),
             ph: specialCats.includes('PH'),
-
-            // Note: 'attendedPractical', 'practicalMarks'
-            // are NOT in the current DB schema and are omitted to prevent errors.
             preferredLocations: data.preferredLocations || [],
             preferredCollegeTypes: data.preferredCollegeTypes || [],
             eligibleCategories: data.eligibleCategories || [],
-
             updatedAt: new Date().toISOString()
         };
 
-        if (profileDocs.documents.length > 0) {
-            profile = profileDocs.documents[0];
+        // Attempt direct update using userId as document ID (Strongly Consistent)
+        try {
             await databases.updateDocument(
                 config.databaseId,
                 'student_profiles_v2',
-                profile.$id,
+                userId,
                 updateData
             );
             return { success: true, action: 'updated', message: 'Rank updated successfully' };
-        } else {
-            // Create new profile if not exists
-            const baseCategory = data.baseCategory || 'GM';
-            const rankRange = calculateRankRange(data.generalMeritRank || 0);
+        } catch (updateError: any) {
+            // If document doesn't exist by userId as ID, we try to create it
+            if (updateError.code === 404) {
+                // IMPORTANT: Since we have a UNIQUE index on the 'userId' attribute, 
+                // we must check if there is an existing document with a DIFFERENT $id
+                // that is blocking the creation of our new document with $id = userId.
+                const existing = await databases.listDocuments(
+                    config.databaseId,
+                    'student_profiles_v2',
+                    [Query.equal('userId', userId)]
+                );
 
-            await databases.createDocument(
-                config.databaseId,
-                'student_profiles_v2',
-                ID.unique(),
-                {
-                    userId: data.userId,
-                    ...updateData,
-                    courseCategory: data.courseCategory,
-                    baseCategory,
-                    rankRange,
-                    eligibleCategories: [baseCategory],
-                    createdAt: new Date().toISOString()
+                if (existing.documents.length > 0) {
+                    // Orphan found! Migrating it by deleting the old one
+                    for (const orphan of existing.documents) {
+                        if (orphan.$id !== userId) {
+                            await databases.deleteDocument(config.databaseId, 'student_profiles_v2', orphan.$id);
+                        }
+                    }
                 }
-            );
-            return { success: true, action: 'created', message: 'Rank saved successfully' };
+
+                const baseCategory = data.baseCategory || 'GM';
+                const rankRange = calculateRankRange(data.generalMeritRank || 0);
+
+                await databases.createDocument(
+                    config.databaseId,
+                    'student_profiles_v2',
+                    userId, // Set the Document ID to the User ID for future direct lookups
+                    {
+                        userId: userId,
+                        ...updateData,
+                        courseCategory: data.courseCategory,
+                        baseCategory,
+                        rankRange,
+                        eligibleCategories: data.eligibleCategories?.length ? data.eligibleCategories : [baseCategory],
+                        createdAt: new Date().toISOString()
+                    }
+                );
+                return { success: true, action: 'created', message: 'Rank saved successfully' };
+            }
+            throw updateError;
         }
     } catch (error: any) {
         console.error('Save student rank error:', error);
