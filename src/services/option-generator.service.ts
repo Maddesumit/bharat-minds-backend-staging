@@ -209,38 +209,37 @@ export async function searchColleges(queryTerm: string, category: string) {
         const queries = [Query.limit(20)];
 
         // Search by Name
-        const nameQuery = [
+        const nameResultsSearch = await databases.listDocuments(config.databaseId, collectionId, [
             ...queries,
             Query.search(searchAttribute, queryTerm)
-        ];
+        ]);
+        const nameResultsContains = await databases.listDocuments(config.databaseId, collectionId, [
+            ...queries,
+            Query.contains(searchAttribute, queryTerm)
+        ]);
 
         // Search by Code (if short enough to likely be a code)
-        const codeQuery = [
-            ...queries,
-            Query.equal(codeAttribute, queryTerm.toUpperCase())
-        ];
+        const codeResults = queryTerm.length < 6
+            ? await databases.listDocuments(config.databaseId, collectionId, [
+                ...queries,
+                Query.equal(codeAttribute, queryTerm.toUpperCase())
+            ])
+            : { documents: [] };
 
-        // Search by Branch/Course (New)
-        // If searching a course (e.g. "Computer Science"), we check cutoff tables
+        // Search by Branch/Course
         const branchCollectionId = isFarmOrVet ? 'farm_agri' : 'historical_cutoffs';
         const branchAttribute = isFarmOrVet ? 'branch' : 'branchName';
-        // Note: farm_agri uses 'branch' (e.g. 'Agriculture'), historical_cutoffs uses 'branchName' (e.g. 'Computer Science')
 
-        const branchQuery = [
-            ...queries,
-            Query.search(branchAttribute, queryTerm)
-        ];
+        const branchResults = queryTerm.length >= 2
+            ? await databases.listDocuments(config.databaseId, branchCollectionId, [
+                ...queries,
+                Query.search(branchAttribute, queryTerm)
+            ])
+            : { documents: [] };
 
-        const [nameResults, codeResults, branchResults] = await Promise.all([
-            databases.listDocuments(config.databaseId, collectionId, nameQuery),
-            queryTerm.length < 6
-                ? databases.listDocuments(config.databaseId, collectionId, codeQuery)
-                : Promise.resolve({ documents: [] }),
-            // Only search branches if query is long enough to be a meaningful course name
-            queryTerm.length >= 3
-                ? databases.listDocuments(config.databaseId, branchCollectionId, branchQuery)
-                : Promise.resolve({ documents: [] })
-        ]);
+        const nameResults = {
+            documents: [...nameResultsSearch.documents, ...nameResultsContains.documents]
+        };
 
         // Combine and Deduplicate
         // Priority: College Name Match > Code Match > Branch Match
@@ -288,21 +287,41 @@ export async function searchColleges(queryTerm: string, category: string) {
             }
 
             if (!exists && b_collegeCode && b_collegeName) {
-                // Generate a synthetic ID or use code
-                // Using code as ID for consistency in map if we wanted, 
-                // but we used doc.$id for direct matches.
-                // Let's use `course-match-${code}` as ID to avoid collision with real college IDs (if they differ)
                 const syntheticId = `course-match-${b_collegeCode}`;
-
                 unique.set(syntheticId, {
                     code: b_collegeCode,
                     name: b_collegeName,
-                    city: '', // Likely unknown from cutoff doc
+                    city: '',
                     id: syntheticId,
-                    matchedCourse: b_branchName // Extra info for frontend
+                    matchedCourse: b_branchName
                 });
             }
         });
+
+        // 3. Augment missing data (cities/types) for colleges found via branch matches
+        const needsAugmentation = Array.from(unique.values()).filter(c => !c.city || !c.type);
+        if (needsAugmentation.length > 0) {
+            const codes = needsAugmentation.map(c => c.code);
+            try {
+                const augmentedDocs = await databases.listDocuments(
+                    config.databaseId,
+                    collectionId,
+                    [Query.equal(codeAttribute, codes), Query.limit(codes.length)]
+                );
+
+                augmentedDocs.documents.forEach((doc: any) => {
+                    const code = doc[codeAttribute];
+                    for (const college of unique.values()) {
+                        if (college.code === code) {
+                            college.city = doc.city || doc.location || doc.district || college.city;
+                            college.type = doc.collegeType || doc.type || college.type;
+                        }
+                    }
+                });
+            } catch (augmentationError) {
+                console.warn('Failed to augment college search results:', augmentationError);
+            }
+        }
 
         return {
             success: true,
