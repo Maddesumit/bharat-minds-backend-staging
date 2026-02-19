@@ -86,6 +86,7 @@ export interface RecommendationInfo {
     tier: 'SAFE' | 'TARGET' | 'REACH';
     year: number;
     round: number;
+    type?: string;
 }
 
 export interface RecommendationSummary {
@@ -210,13 +211,13 @@ export async function searchColleges(queryTerm: string, category: string) {
         // Search by Name
         const nameQuery = [
             ...queries,
-            Query.contains(searchAttribute, queryTerm)
+            Query.search(searchAttribute, queryTerm)
         ];
 
         // Search by Code (if short enough to likely be a code)
         const codeQuery = [
             ...queries,
-            Query.startsWith(codeAttribute, queryTerm.toUpperCase())
+            Query.equal(codeAttribute, queryTerm.toUpperCase())
         ];
 
         // Search by Branch/Course (New)
@@ -227,7 +228,7 @@ export async function searchColleges(queryTerm: string, category: string) {
 
         const branchQuery = [
             ...queries,
-            Query.contains(branchAttribute, queryTerm) // or Query.search
+            Query.search(branchAttribute, queryTerm)
         ];
 
         const [nameResults, codeResults, branchResults] = await Promise.all([
@@ -253,6 +254,7 @@ export async function searchColleges(queryTerm: string, category: string) {
                     code: doc[codeAttribute],
                     name: doc[searchAttribute],
                     city: doc.city || doc.location || doc.district || '',
+                    type: doc.collegeType || doc.type || '',
                     id: doc.$id
                 });
             }
@@ -774,7 +776,7 @@ async function searchEngineeringOptions(studentProfile: any, queryTerm: string) 
         'historical_cutoffs',
         [
             ...queries,
-            Query.contains('collegeName', queryTerm)
+            Query.search('collegeName', queryTerm)
         ]
     );
 
@@ -784,7 +786,7 @@ async function searchEngineeringOptions(studentProfile: any, queryTerm: string) 
         'historical_cutoffs',
         [
             ...queries,
-            Query.search('collegeCode', queryTerm)
+            Query.equal('collegeCode', queryTerm.toUpperCase())
         ]
     );
 
@@ -812,7 +814,8 @@ async function searchEngineeringOptions(studentProfile: any, queryTerm: string) 
             probability,
             tier,
             year: doc.academicYear,
-            round: doc.round
+            round: doc.round,
+            type: doc.collegeType || ''
         };
 
         const key = `${opt.collegeCode}-${opt.branchCode}`;
