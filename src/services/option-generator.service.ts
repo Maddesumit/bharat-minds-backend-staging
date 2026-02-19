@@ -230,12 +230,20 @@ export async function searchColleges(queryTerm: string, category: string) {
         const branchCollectionId = isFarmOrVet ? 'farm_agri' : 'historical_cutoffs';
         const branchAttribute = isFarmOrVet ? 'branch' : 'branchName';
 
-        const branchResults = queryTerm.length >= 2
-            ? await databases.listDocuments(config.databaseId, branchCollectionId, [
+        let branchResults: { documents: any[] } = { documents: [] };
+        if (queryTerm.length >= 2) {
+            const branchSearch = await databases.listDocuments(config.databaseId, branchCollectionId, [
                 ...queries,
                 Query.search(branchAttribute, queryTerm)
-            ])
-            : { documents: [] };
+            ]);
+            const branchContains = await databases.listDocuments(config.databaseId, branchCollectionId, [
+                ...queries,
+                Query.contains(branchAttribute, queryTerm)
+            ]);
+            branchResults = {
+                documents: [...branchSearch.documents, ...branchContains.documents]
+            };
+        }
 
         const nameResults = {
             documents: [...nameResultsSearch.documents, ...nameResultsContains.documents]
