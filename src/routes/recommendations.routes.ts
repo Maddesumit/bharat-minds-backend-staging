@@ -5,10 +5,7 @@
  * - Accepts student exam details and preferences
  * - Persists them into the normalized student profile
  * - Generates a ranked recommendation list using historical cutoffs
- *
- * This is a thin wrapper around the existing option generator service,
- * so it reuses the same RankInput structure and generation logic used
- * by the /api/options endpoints.
+ 
  */
 
 import { Router, Request, Response } from 'express';
