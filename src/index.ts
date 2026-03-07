@@ -15,6 +15,7 @@ import preferenceRoutes from './routes/preferences.routes';
 import optionGeneratorRoutes from './routes/option-generator.routes';
 import recommendationsRoutes from './routes/recommendations.routes';
 import studentsRoutes from './routes/students.routes';
+import optionEntryGeneratorRoutes from './routes/option-entry-generator.routes';
 
 // Load environment variables
 dotenv.config();
@@ -69,6 +70,7 @@ app.use('/api/preferences', preferenceRoutes);
 app.use('/api/options', optionGeneratorRoutes);
 app.use('/api/recommendations', recommendationsRoutes);
 app.use('/api/students', studentsRoutes);
+app.use('/api/option-entry-generator', optionEntryGeneratorRoutes);
 
 // Legacy routes (backward compatibility)
 app.use('/api/auth', authRoutes);
