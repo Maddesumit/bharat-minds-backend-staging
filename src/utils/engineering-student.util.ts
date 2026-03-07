@@ -27,6 +27,7 @@ export function normalizeEngineeringStudentDocument(input: any, createdAtIso?: s
     return {
         userId,
         payload: {
+            userId,
             name,
             mobile,
             email,
@@ -52,4 +53,3 @@ export function normalizeEngineeringStudentDocument(input: any, createdAtIso?: s
         },
     };
 }
-
