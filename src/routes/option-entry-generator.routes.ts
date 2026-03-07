@@ -1,10 +1,6 @@
 /**
  * Option Entry Generator Routes
- *
- * Persists the user's selected option-entry list ("preferences") into
- * the Appwrite collection: option_entry_generator (name: "option-entry generator").
- *
- * Key mechanism:
+ 
  * - document id = userId (same as Students doc id)
  * - also stores userId as an attribute for querying/indexing
  */
