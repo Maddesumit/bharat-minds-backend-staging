@@ -35,6 +35,7 @@ export const config = {
         // Legacy app collections (kept for build compatibility; may not exist in the current database)
         students: process.env.APPWRITE_STUDENTS_COLLECTION_ID || 'students',
         optionLists: process.env.APPWRITE_OPTION_LISTS_COLLECTION_ID || 'option_lists',
+        optionEntryGenerator: process.env.APPWRITE_OPTION_ENTRY_GENERATOR_COLLECTION_ID || 'option_entry_generator',
         collegeCourses: process.env.APPWRITE_COLLEGE_COURSES_COLLECTION_ID || 'college_courses',
         cutoffData: process.env.APPWRITE_CUTOFF_DATA_COLLECTION_ID || 'cutoff_data',
 
