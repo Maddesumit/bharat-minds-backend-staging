@@ -10,7 +10,7 @@
 
 import { Router, Request, Response } from 'express';
 import { body, validationResult } from 'express-validator';
-import { ID, Query } from 'node-appwrite';
+import { Query } from 'node-appwrite';
 import { databases, config } from '../config/appwrite.config';
 import { RankInput, calculateSearchRange } from '../services/option-generator.service';
 
@@ -85,11 +85,7 @@ router.post(
                 });
             }
 
-            const payload = req.body as RankInput & { year?: number };
-
-            // Persist a simple snapshot of the student's rank into the new schema
-            // using the student_ranks collection.
-            const now = new Date().toISOString();
+            const payload = req.body as RankInput & { year?: number; round?: number };
             const rankValue =
                 payload.generalMeritRank ??
                 payload.theoryRank ??
@@ -102,46 +98,19 @@ router.post(
                 });
             }
 
-            try {
-                await databases.createDocument(
-                    config.databaseId,
-                    'student_ranks',
-                    ID.unique(),
-                    {
-                        userId: payload.userId,
-                        counsellingType: payload.counsellingType,
-                        courseCategory: payload.courseCategory,
-                        branch: payload.branch || '',
-                        generalMeritRank: payload.generalMeritRank || null,
-                        categoryRank: payload.categoryRank || null,
-                        theoryRank: payload.theoryRank || null,
-                        practicalRank: payload.practicalRank || null,
-                        createdAt: now,
-                        updatedAt: now,
-                    }
-                );
-            } catch (err: any) {
-                // If the collection doesn't exist yet, return a clear message
-                if (err.code === 404 || err.type === 'collection_not_found') {
-                    return res.status(500).json({
-                        success: false,
-                        error: "Collection 'student_ranks' could not be found. Please create it in Appwrite using the provided schema scripts.",
-                    });
-                }
-                console.error('Error saving student_ranks document:', err);
-                return res.status(500).json({
-                    success: false,
-                    error: 'Failed to save student rank',
-                });
-            }
-
-            // Generate recommendations from the new cutoff_data schema
-            const recommendationsResult = await generateRecommendationsFromCutoffData(
+            // Generate recommendations from the current Appwrite data collections:
+            // - r1_cutoffs
+            // - r1r2_hk_cutoff (Round 2)
+            // - r1r2_hk (HK variants / combined)
+            // - colleges_info (for college name/type enrichment)
+            const recommendationsResult = await generateRecommendationsFromCutoffCollections(
                 rankValue,
-                payload.baseCategory || payload.courseCategory || 'GM',
+                payload.baseCategory || 'GM',
+                payload.eligibleCategories,
                 payload.courseCategory,
                 payload.counsellingType,
-                payload.year
+                payload.year,
+                payload.round
             );
 
             if (!recommendationsResult.success) {
@@ -164,95 +133,17 @@ router.post(
 );
 
 /**
- * GET /api/recommendations/:userId
- *
- * Convenience endpoint to fetch (or regenerate) recommendations
- * for an existing student profile.
- */
-router.get('/:userId', async (req: Request, res: Response) => {
-    try {
-        const { userId } = req.params;
-
-        if (!userId) {
-            return res.status(400).json({
-                success: false,
-                error: 'userId is required',
-            });
-        }
-
-        // Look up the most recent rank snapshot for this user
-        const ranks = await databases.listDocuments(
-            config.databaseId,
-            'student_ranks',
-            [
-                Query.equal('userId', userId),
-                Query.orderDesc('createdAt'),
-                Query.limit(1),
-            ]
-        );
-
-        if (ranks.documents.length === 0) {
-            return res.status(404).json({
-                success: false,
-                error: 'No rank data found for this user',
-            });
-        }
-
-        const latest = ranks.documents[0] as any;
-        const rankValue =
-            latest.generalMeritRank ??
-            latest.theoryRank ??
-            latest.practicalRank;
-
-        if (!rankValue) {
-            return res.status(400).json({
-                success: false,
-                error: 'Latest rank record does not contain a usable rank value',
-            });
-        }
-
-        const recommendationsResult = await generateRecommendationsFromCutoffData(
-            rankValue,
-            latest.baseCategory || latest.category || 'GM',
-            latest.courseCategory,
-            latest.counsellingType,
-            latest.year
-        );
-
-        if (!recommendationsResult.success) {
-            return res.status(400).json(recommendationsResult);
-        }
-
-        return res.status(200).json({
-            success: true,
-            data: recommendationsResult.data,
-        });
-    } catch (error: any) {
-        console.error('Get recommendations error:', error);
-        return res.status(500).json({
-            success: false,
-            error: 'Internal server error',
-        });
-    }
-});
-
-/**
  * Internal helper:
- * Generate recommendations using the lightweight cutoff_data schema
- * defined in appwrite.schemas.ts / recreate-collections-simple.ts.
- *
- * Collections used:
- * - cutoff_data: { collegeCode, collegeName, courseCode, courseName, courseCategory, category, counsellingType, cutoffRank, year }
- *
- * This intentionally does NOT depend on the older student_profiles_v2 /
- * historical_cutoffs schema to make the route compatible with the updated database.
+ * Generate recommendations using the current cutoff collections.
  */
-async function generateRecommendationsFromCutoffData(
+async function generateRecommendationsFromCutoffCollections(
     studentRank: number,
-    category: string,
+    baseCategory: string,
+    eligibleCategories: string[] | undefined,
     courseCategory: string,
     counsellingType: string,
-    year?: number
+    year?: number,
+    round?: number
 ): Promise<{
     success: boolean;
     data?: {
@@ -263,21 +154,37 @@ async function generateRecommendationsFromCutoffData(
     error?: string;
 }> {
     try {
-        const targetYear = year || new Date().getFullYear();
+        if (courseCategory !== 'Engineering') {
+            return {
+                success: false,
+                error: `Unsupported courseCategory: ${courseCategory}. This API is currently wired to Engineering collections only.`,
+            };
+        }
+
+        const requestedRound = round ?? 1;
+        const categoryList = (eligibleCategories && eligibleCategories.length > 0)
+            ? eligibleCategories
+            : [baseCategory || 'GM'];
+
+        const cutoffCollectionId = selectCutoffCollectionId({
+            requestedRound,
+            categoryList,
+        });
+
+        const targetYear = year ?? await getLatestYear(cutoffCollectionId);
         const { minRank, maxRank } = calculateSearchRange(studentRank);
 
-        const cutoffCollectionId = config.collections.cutoffData || 'cutoff_data';
+        const collegeIndex = await buildCollegeIndex();
 
         const result = await databases.listDocuments(
             config.databaseId,
             cutoffCollectionId,
             [
-                Query.equal('courseCategory', courseCategory),
-                Query.equal('category', category),
-                Query.equal('counsellingType', counsellingType),
                 Query.equal('year', targetYear),
-                Query.greaterThanEqual('cutoffRank', minRank),
-                Query.lessThanEqual('cutoffRank', maxRank),
+                Query.equal('round', requestedRound),
+                Query.equal('category', categoryList as any),
+                Query.greaterThanEqual('closingRank', minRank),
+                Query.lessThanEqual('closingRank', maxRank),
                 Query.limit(500),
             ]
         );
@@ -295,31 +202,34 @@ async function generateRecommendationsFromCutoffData(
 
         // Map each cutoff row to a recommendation with probability & tier
         const rawOptions = result.documents.map((doc: any) => {
-            const cutoffRank = doc.cutoffRank as number;
+            const cutoffRank = doc.closingRank as number;
             const difference = cutoffRank - studentRank;
             const probability = calculateProbabilitySimple(difference);
             const tier = assignTierSimple(probability);
 
+            const collegeCode = (doc.collegeCode ?? doc.college_code ?? doc.collegecode ?? '').toString();
+            const collegeInfo = collegeIndex.get(collegeCode);
+
             return {
                 optionId: doc.$id,
-                collegeCode: doc.collegeCode,
-                collegeName: doc.collegeName,
-                courseCode: doc.courseCode,
-                courseName: doc.courseName,
-                courseCategory: doc.courseCategory,
+                collegeCode,
+                collegeName: collegeInfo?.name || '',
+                branchCode: (doc.courseId ?? doc.course_code ?? doc.coursecode ?? '').toString(),
+                branchName: (doc.courseName ?? doc.course_name ?? doc.coursename ?? '').toString(),
                 category: doc.category,
-                counsellingType: doc.counsellingType,
                 cutoffRank,
                 probability,
                 tier,
                 year: doc.year,
+                round: doc.round,
+                type: collegeInfo?.type || undefined,
             };
         });
 
         // Deduplicate by college + course, keeping the highest probability
         const uniqueMap = new Map<string, any>();
         for (const opt of rawOptions) {
-            const key = `${opt.collegeCode}-${opt.courseCode}`;
+            const key = `${opt.collegeCode}-${opt.branchCode}`;
             const existing = uniqueMap.get(key);
             if (!existing || opt.probability > existing.probability) {
                 uniqueMap.set(key, opt);
@@ -353,11 +263,11 @@ async function generateRecommendationsFromCutoffData(
             },
         };
     } catch (error: any) {
-        console.error('Error generating recommendations from cutoff_data:', error);
+        console.error('Error generating recommendations:', error);
         if (error.code === 404 || error.type === 'collection_not_found') {
             return {
                 success: false,
-                error: "Collection 'cutoff_data' could not be found. Please create it in Appwrite using the provided schema scripts.",
+                error: `Collection not found in Appwrite: ${error.message}`,
             };
         }
         return {
@@ -365,6 +275,50 @@ async function generateRecommendationsFromCutoffData(
             error: error.message || 'Failed to generate recommendations',
         };
     }
+}
+
+async function getLatestYear(collectionId: string): Promise<number> {
+    const latest = await databases.listDocuments(
+        config.databaseId,
+        collectionId,
+        [Query.orderDesc('year'), Query.limit(1)]
+    );
+
+    const year = (latest.documents[0] as any)?.year;
+    if (typeof year === 'number') return year;
+    if (typeof year === 'string' && !isNaN(Number(year))) return Number(year);
+    return new Date().getFullYear();
+}
+
+async function buildCollegeIndex(): Promise<Map<string, { name: string; type?: string }>> {
+    const result = await databases.listDocuments(
+        config.databaseId,
+        config.collections.collegesInfo,
+        [Query.limit(5000)]
+    );
+
+    const map = new Map<string, { name: string; type?: string }>();
+    for (const doc of result.documents as any[]) {
+        const code = (doc.collegeCode ?? doc.collegecode ?? doc.college_code ?? doc.code ?? doc.$id ?? '').toString();
+        if (!code) continue;
+
+        const name = (doc.collegeName ?? doc.collegename ?? doc.college_name ?? doc.name ?? '').toString();
+        const type = (doc.collegeType ?? doc.Type ?? doc.type ?? '').toString() || undefined;
+        map.set(code, { name, type });
+    }
+    return map;
+}
+
+function selectCutoffCollectionId(args: { requestedRound: number; categoryList: string[] }): string {
+    const hasHKVariant = args.categoryList.some((c) => c.endsWith('H') || c.endsWith('KH') || c.endsWith('RH') || c.includes('HK'));
+
+    // If the user's eligible categories include HK variants, prefer the combined HK collection.
+    if (hasHKVariant) {
+        return config.collections.r1r2Hk;
+    }
+
+    // Otherwise route by round.
+    return args.requestedRound >= 2 ? config.collections.r2Cutoffs : config.collections.r1Cutoffs;
 }
 
 function calculateProbabilitySimple(difference: number): number {
@@ -387,4 +341,3 @@ function calculateListScoreSimple(summary: { safe: number; target: number; reach
 }
 
 export default router;
-
