@@ -13,6 +13,8 @@ import collegeRoutes from './routes/college.routes';
 import courseRoutes from './routes/course.routes';
 import preferenceRoutes from './routes/preferences.routes';
 import optionGeneratorRoutes from './routes/option-generator.routes';
+import recommendationsRoutes from './routes/recommendations.routes';
+import studentsRoutes from './routes/students.routes';
 
 // Load environment variables
 dotenv.config();
@@ -65,6 +67,8 @@ app.use('/api/colleges', collegeRoutes);
 app.use('/api/courses', courseRoutes);
 app.use('/api/preferences', preferenceRoutes);
 app.use('/api/options', optionGeneratorRoutes);
+app.use('/api/recommendations', recommendationsRoutes);
+app.use('/api/students', studentsRoutes);
 
 // Legacy routes (backward compatibility)
 app.use('/api/auth', authRoutes);
@@ -169,7 +173,7 @@ async function startServer() {
         try {
             console.log(' Testing Read Connectivity...');
             const { databases, config } = await import('./config/appwrite.config');
-            await databases.listDocuments(config.databaseId, 'colleges', [Query.limit(1)]);
+            await databases.listDocuments(config.databaseId, config.collections.collegesInfo, [Query.limit(1)]);
             console.log(' ✅ Read Connectivity Successful');
         } catch (err: any) {
             console.error(' ❌ Read Connectivity Failed:', err.message);
