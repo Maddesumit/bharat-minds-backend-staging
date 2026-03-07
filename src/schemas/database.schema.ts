@@ -278,8 +278,4 @@ export interface OptionListSchema {
  * - Delete: user:{userId}
  */
 
-export default {
-    UserProfileSchema,
-    StudentSchema,
-    OptionListSchema,
-};
+// Note: This module intentionally exports TypeScript types/enums only.
