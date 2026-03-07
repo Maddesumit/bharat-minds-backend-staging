@@ -26,6 +26,45 @@ interface CollegeDocument extends Models.Document {
     accreditation?: string;
 }
 
+function normalizeCollegeDocument(doc: any): CollegeDocument {
+    const counsellingTypesRaw = doc.counsellingTypes ?? doc.counselling_types ?? '[]';
+
+    return {
+        ...doc,
+        collegeCode: (doc.collegeCode ?? doc.collegecode ?? doc.college_code ?? doc.code ?? doc.$id ?? '').toString(),
+        collegeName: (doc.collegeName ?? doc.collegename ?? doc.college_name ?? doc.name ?? '').toString(),
+        city: (doc.city ?? doc.City ?? '').toString(),
+        district: (doc.district ?? doc.District ?? '').toString(),
+        collegeType: (doc.collegeType ?? doc.Type ?? doc.type ?? '') as CollegeType,
+        counsellingTypes: typeof counsellingTypesRaw === 'string' ? counsellingTypesRaw : JSON.stringify(counsellingTypesRaw),
+        address: (doc.address ?? doc.Address ?? '').toString() || undefined,
+        website: (doc.website ?? doc.Website ?? '').toString() || undefined,
+        established: doc.established ?? doc.Established,
+        accreditation: (doc.accreditation ?? doc.Accredation ?? doc.Accreditation ?? '').toString() || undefined,
+    } as CollegeDocument;
+}
+
+async function listAllDocuments(collectionId: string, maxTotal: number = 5000): Promise<any[]> {
+    const docs: any[] = [];
+    const pageSize = 100; // Appwrite enforces a max page size
+    let offset = 0;
+
+    while (docs.length < maxTotal) {
+        const result = await databases.listDocuments(
+            config.databaseId,
+            collectionId,
+            [Query.limit(pageSize), Query.offset(offset)]
+        );
+
+        docs.push(...result.documents);
+        offset += result.documents.length;
+
+        if (result.documents.length < pageSize) break;
+    }
+
+    return docs;
+}
+
 /**
  * Create college DTO (Admin only)
  */
@@ -47,14 +86,8 @@ export interface CreateCollegeDTO {
  */
 export async function searchColleges(filters: CollegeSearchFilters) {
     try {
-
-        const documents = await databases.listDocuments(
-            config.databaseId,
-            config.collections.colleges,
-            [Query.limit(5000)] // Get all colleges (max 5000)
-        );
-
-        let results = documents.documents as unknown as CollegeDocument[];
+        const documents = await listAllDocuments(config.collections.collegesInfo, 5000);
+        let results = documents.map(normalizeCollegeDocument);
 
         // Apply filters
         if (filters.collegeCode) {
@@ -83,8 +116,12 @@ export async function searchColleges(filters: CollegeSearchFilters) {
 
         if (filters.counsellingType) {
             results = results.filter((doc) => {
-                const types = JSON.parse(doc.counsellingTypes || '[]');
-                return types.includes(filters.counsellingType);
+                try {
+                    const types = JSON.parse(doc.counsellingTypes || '[]');
+                    return Array.isArray(types) && types.includes(filters.counsellingType);
+                } catch {
+                    return false;
+                }
             });
         }
 
@@ -163,7 +200,7 @@ export async function getCollege(collegeId: string) {
     try {
         const document = await databases.getDocument(
             config.databaseId,
-            config.collections.colleges,
+            config.collections.collegesInfo,
             collegeId
         ) as unknown as CollegeDocument;
 
@@ -188,12 +225,8 @@ export async function getCollege(collegeId: string) {
  */
 export async function listCities() {
     try {
-        const documents = await databases.listDocuments(
-            config.databaseId,
-            config.collections.colleges
-        );
-
-        const cities = [...new Set((documents.documents as unknown as CollegeDocument[]).map((doc) => doc.city))];
+        const documents = await listAllDocuments(config.collections.collegesInfo, 5000);
+        const cities = [...new Set(documents.map(normalizeCollegeDocument).map((doc) => doc.city).filter(Boolean))];
         cities.sort();
 
         return {
@@ -215,12 +248,8 @@ export async function listCities() {
  */
 export async function listDistricts() {
     try {
-        const documents = await databases.listDocuments(
-            config.databaseId,
-            config.collections.colleges
-        );
-
-        const districts = [...new Set((documents.documents as unknown as CollegeDocument[]).map((doc) => doc.district))];
+        const documents = await listAllDocuments(config.collections.collegesInfo, 5000);
+        const districts = [...new Set(documents.map(normalizeCollegeDocument).map((doc) => doc.district).filter(Boolean))];
         districts.sort();
 
         return {
@@ -281,22 +310,25 @@ export async function createCollege(data: CreateCollegeDTO) {
             };
         }
 
-        const collegeData = {
-            collegeCode: data.collegeCode,
-            collegeName: data.collegeName,
-            city: data.city,
-            district: data.district,
-            collegeType: data.collegeType,
+        // colleges_info schema uses legacy attribute names (collegecode, collegename, City, Type, ...).
+        // Keep writes compatible with that schema.
+        const collegeData: any = {
+            collegecode: data.collegeCode,
+            collegename: data.collegeName,
+            City: data.city,
+            District: data.district,
+            Type: data.collegeType,
+            Address: data.address || null,
+            Website: data.website || null,
+            Established: data.established || null,
+            Accredation: data.accreditation || null,
+            // Optional: store counselling types if the collection has it (will be ignored/failed if missing)
             counsellingTypes: JSON.stringify(data.counsellingTypes),
-            address: data.address || '',
-            website: data.website || '',
-            established: data.established || null,
-            accreditation: data.accreditation || '',
         };
 
         const document = await databases.createDocument(
             config.databaseId,
-            config.collections.colleges,
+            config.collections.collegesInfo,
             ID.unique(),
             collegeData
         );
