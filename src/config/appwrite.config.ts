@@ -27,15 +27,26 @@ export const config = {
     apiKey: process.env.APPWRITE_API_KEY || '',
     databaseId: process.env.APPWRITE_DATABASE_ID || 'main_db',
     collections: {
+        // Core app collections (may not exist in all databases)
         userProfiles: process.env.APPWRITE_USER_PROFILES_COLLECTION_ID || 'user_profiles',
         studentRanks: process.env.APPWRITE_STUDENT_RANKS_COLLECTION_ID || 'student_ranks',
-        colleges: process.env.APPWRITE_COLLEGES_COLLECTION_ID || 'colleges',
-        collegeCourses: process.env.APPWRITE_COLLEGE_COURSES_COLLECTION_ID || 'college_courses',
         userPreferences: process.env.APPWRITE_USER_PREFERENCES_COLLECTION_ID || 'user_preferences',
-        cutoffData: process.env.APPWRITE_CUTOFF_DATA_COLLECTION_ID || 'cutoff_data',
-        // Legacy collections (if still needed)
+
+        // Legacy app collections (kept for build compatibility; may not exist in the current database)
         students: process.env.APPWRITE_STUDENTS_COLLECTION_ID || 'students',
         optionLists: process.env.APPWRITE_OPTION_LISTS_COLLECTION_ID || 'option_lists',
+        collegeCourses: process.env.APPWRITE_COLLEGE_COURSES_COLLECTION_ID || 'college_courses',
+        cutoffData: process.env.APPWRITE_CUTOFF_DATA_COLLECTION_ID || 'cutoff_data',
+
+        // Data collections (must match the current database schema)
+        collegesInfo: process.env.APPWRITE_COLLEGES_INFO_COLLECTION_ID || 'colleges_info',
+        r1Cutoffs: process.env.APPWRITE_R1_CUTOFFS_COLLECTION_ID || 'r1_cutoffs',
+        r2Cutoffs: process.env.APPWRITE_R2_CUTOFFS_COLLECTION_ID || 'r1r2_hk_cutoff',
+        r1r2Hk: process.env.APPWRITE_R1R2_HK_COLLECTION_ID || 'r1r2_hk',
+        seatMatrix: process.env.APPWRITE_SEAT_MATRIX_COLLECTION_ID || 'seat_matrix',
+
+        // Backward-compatible aliases (existing services reference these keys)
+        colleges: process.env.APPWRITE_COLLEGES_COLLECTION_ID || (process.env.APPWRITE_COLLEGES_INFO_COLLECTION_ID || 'colleges_info'),
     },
     buckets: {
         pdfs: process.env.APPWRITE_PDF_BUCKET_ID || 'pdfs',
