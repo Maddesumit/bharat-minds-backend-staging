@@ -1,10 +1,7 @@
 /**
  * Multi-Course College Service
  * 
- * Handles college retrieval for different course types:
- * - Engineering: colleges collection
- * - Veterinary/Agriculture: farming_vet_colleges collection
- * - Medical: Extract from Farm_Agri/Farm_AgriV2 collections
+ * Handles college retrieval for different course types from the main colleges collection.
  */
 
 import { databases, config } from '../config/appwrite.config';
@@ -26,125 +23,65 @@ export interface CollegeResult {
     state?: string;
 }
 
-/**
- * Get colleges based on course type
- */
-export async function getCollegesByCourseType(filters: MultiCourseCollegeFilters) {
-    try {
-        console.log(`🏫 Fetching colleges for ${filters.courseType}...`);
+async function listAllDocuments(collectionId: string, maxTotal: number = 5000): Promise<any[]> {
+    const docs: any[] = [];
+    const pageSize = 100; // Appwrite enforces a max page size
+    let offset = 0;
 
-        switch (filters.courseType) {
-            case 'Engineering':
-                return await getEngineeringColleges(filters);
+    while (docs.length < maxTotal) {
+        const result = await databases.listDocuments(
+            config.databaseId,
+            collectionId,
+            [Query.limit(pageSize), Query.offset(offset)]
+        );
 
-            case 'Veterinary':
-            case 'Agriculture':
-                return await getFarmingVetColleges(filters);
+        docs.push(...result.documents);
+        offset += result.documents.length;
 
-            case 'Medical':
-                return await getMedicalColleges(filters);
-
-            default:
-                return {
-                    success: false,
-                    error: `Unsupported course type: ${filters.courseType}`,
-                    data: []
-                };
-        }
-    } catch (error: any) {
-        console.error('❌ Get colleges by course type error:', error);
-        return {
-            success: false,
-            error: error.message,
-            data: []
-        };
+        if (result.documents.length < pageSize) break;
     }
+
+    return docs;
 }
 
 /**
- * Get Engineering colleges from 'colleges' collection
+ * Get colleges based on course type from the single 'colleges_info' collection
  */
-async function getEngineeringColleges(filters: MultiCourseCollegeFilters) {
+async function getColleges(filters: MultiCourseCollegeFilters) {
     try {
-        const queries: string[] = [Query.limit(500)];
+        const documents = await listAllDocuments(config.collections.collegesInfo, 5000);
+        console.log(`   Fetched ${documents.length} documents from colleges_info`);
 
-        // Add filters if provided
-        if (filters.location) {
-            queries.push(Query.equal('city', filters.location));
-        }
-        if (filters.type) {
-            queries.push(Query.equal('collegeType', filters.type));
-        }
-
-        const result = await databases.listDocuments(
-            config.databaseId,
-            config.collections.colleges,
-            queries
-        );
-
-        let colleges = result.documents.map((doc: any) => ({
-            code: doc.collegeCode || doc.$id,
-            name: doc.collegeName || 'Unknown College',
-            location: doc.city,
-            type: doc.collegeType,
-            district: doc.district
+        let colleges = documents.map((doc: any) => ({
+            code: (doc.collegeCode ?? doc.collegecode ?? doc.college_code ?? doc.code ?? doc.$id ?? '').toString(),
+            name: (doc.collegeName ?? doc.collegename ?? doc.college_name ?? doc.name ?? 'Unknown College').toString(),
+            location: (doc.city ?? doc.City ?? '').toString() || undefined,
+            type: (doc.collegeType ?? doc.Type ?? doc.type ?? '').toString() || undefined,
+            district: (doc.district ?? doc.District ?? '').toString() || undefined
         }));
 
-        // Apply search filter if provided
-        if (filters.search) {
-            const searchLower = filters.search.toLowerCase();
-            colleges = colleges.filter((college: CollegeResult) =>
-                college.name.toLowerCase().includes(searchLower) ||
-                college.code.toLowerCase().includes(searchLower)
-            );
+        // Filter by course type if the collection has a matching attribute.
+        // If not present (typical for the current CSV-backed schema), we treat the
+        // colleges_info collection as a single Engineering dataset and skip this filter.
+        if (filters.courseType && documents.length > 0) {
+            const hasCourseCategoryAttr = Object.prototype.hasOwnProperty.call(documents[0] || {}, 'courseCategory');
+            if (hasCourseCategoryAttr) {
+                colleges = colleges.filter((college: any, idx: number) => {
+                    const raw = documents[idx] as any;
+                    return raw.courseCategory === filters.courseType;
+                });
+            }
         }
 
-        console.log(`   Found ${colleges.length} Engineering colleges`);
-
-        return {
-            success: true,
-            data: colleges,
-            total: colleges.length
-        };
-    } catch (error: any) {
-        console.error('   Error fetching Engineering colleges:', error.message);
-        return {
-            success: false,
-            error: error.message,
-            data: []
-        };
-    }
-}
-
-/**
- * Get Farming/Veterinary colleges from 'farming_vet_colleges' collection
- */
-async function getFarmingVetColleges(filters: MultiCourseCollegeFilters) {
-    try {
-        const queries: string[] = [Query.limit(500)];
-
-        // Add filters if provided
         if (filters.location) {
-            queries.push(Query.equal('location', filters.location));
+            const locationLower = filters.location.toLowerCase();
+            colleges = colleges.filter((college: CollegeResult) => (college.location || '').toLowerCase() === locationLower);
         }
+
         if (filters.type) {
-            queries.push(Query.equal('type', filters.type));
+            const typeLower = filters.type.toLowerCase();
+            colleges = colleges.filter((college: CollegeResult) => (college.type || '').toLowerCase() === typeLower);
         }
-
-        const result = await databases.listDocuments(
-            config.databaseId,
-            'farming_vet_colleges',
-            queries
-        );
-
-        let colleges = result.documents.map((doc: any) => ({
-            code: doc.college_id || doc.$id,
-            name: doc.college_name || 'Unknown College',
-            location: doc.location,
-            type: doc.type,
-            district: doc.district,
-            state: doc.state
-        }));
 
         // Apply search filter if provided
         if (filters.search) {
@@ -172,90 +109,30 @@ async function getFarmingVetColleges(filters: MultiCourseCollegeFilters) {
     }
 }
 
+
 /**
- * Get Medical colleges from 'Farm_Agri' or 'Farm_AgriV2' collections
- * Extract unique colleges from the wide-format data
+ * Get colleges based on course type
  */
-async function getMedicalColleges(filters: MultiCourseCollegeFilters) {
+export async function getCollegesByCourseType(filters: MultiCourseCollegeFilters) {
     try {
-        const collectionsToTry = ['Farm_Agri', 'Farm_AgriV2'];
+        console.log(`🏫 Fetching colleges for ${filters.courseType}...`);
 
-        for (const collectionName of collectionsToTry) {
-            try {
-                console.log(`   Trying ${collectionName}...`);
+        switch (filters.courseType) {
+            case 'Engineering':
+            case 'Veterinary':
+            case 'Agriculture':
+            case 'Medical':
+                return await getColleges(filters);
 
-                const result = await databases.listDocuments(
-                    config.databaseId,
-                    collectionName,
-                    [Query.limit(500)]
-                );
-
-                // Extract unique colleges
-                const collegeMap = new Map<string, CollegeResult>();
-
-                result.documents.forEach((doc: any) => {
-                    const code = doc.college_id || doc.collegeCode || doc.$id;
-                    const name = doc.college || doc.collegeName || 'Unknown College';
-
-                    if (!collegeMap.has(code)) {
-                        collegeMap.set(code, {
-                            code,
-                            name,
-                            location: doc.location || doc.city,
-                            type: 'Medical'
-                        });
-                    }
-                });
-
-                let colleges = Array.from(collegeMap.values());
-
-                // Apply search filter if provided
-                if (filters.search) {
-                    const searchLower = filters.search.toLowerCase();
-                    colleges = colleges.filter((college: CollegeResult) =>
-                        college.name.toLowerCase().includes(searchLower) ||
-                        college.code.toLowerCase().includes(searchLower)
-                    );
-                }
-
-                // Apply location filter if provided
-                if (filters.location) {
-                    colleges = colleges.filter((college: CollegeResult) =>
-                        college.location?.toLowerCase() === filters.location?.toLowerCase()
-                    );
-                }
-
-                console.log(`   Found ${colleges.length} Medical colleges from ${collectionName}`);
-
+            default:
                 return {
-                    success: true,
-                    data: colleges,
-                    total: colleges.length
+                    success: false,
+                    error: `Unsupported course type: ${filters.courseType}`,
+                    data: []
                 };
-
-            } catch (error: any) {
-                console.error(`   Failed to fetch from ${collectionName}:`, error.message);
-
-                // If this is the last collection to try, return error
-                if (collectionName === collectionsToTry[collectionsToTry.length - 1]) {
-                    return {
-                        success: false,
-                        error: `Failed to fetch Medical colleges from all collections`,
-                        data: []
-                    };
-                }
-            }
         }
-
-        // Fallback (should not reach here)
-        return {
-            success: false,
-            error: 'No Medical college data found',
-            data: []
-        };
-
     } catch (error: any) {
-        console.error('   Error fetching Medical colleges:', error.message);
+        console.error('❌ Get colleges by course type error:', error);
         return {
             success: false,
             error: error.message,
@@ -263,6 +140,7 @@ async function getMedicalColleges(filters: MultiCourseCollegeFilters) {
         };
     }
 }
+
 
 /**
  * Get unique locations for a course type
@@ -304,7 +182,7 @@ export async function getLocationsByCourseType(courseType: string) {
  * Get unique college types for a course type
  */
 export async function getTypesByCourseType(courseType: string) {
-    try {
+try {
         const filters: MultiCourseCollegeFilters = {
             courseType: courseType as any
         };
