@@ -6,9 +6,10 @@
  */
 
 import { Router, Request, Response } from 'express';
-import { body, param, validationResult } from 'express-validator';
+import { body, param, query, validationResult } from 'express-validator';
 import { databases, config } from '../config/appwrite.config';
 import { normalizeEngineeringStudentDocument } from '../utils/engineering-student.util';
+import { Query } from 'node-appwrite';
 
 const router = Router();
 
@@ -86,6 +87,39 @@ router.post(
                 success: false,
                 error: error.message || 'Failed to save student profile',
             });
+        }
+    }
+);
+
+/**
+ * GET /api/students/by-email?email=...
+ * Fetch a student profile by email (Engineering-only stored profiles).
+ */
+router.get(
+    '/by-email',
+    [query('email').isEmail().withMessage('Valid email is required')],
+    async (req: Request, res: Response) => {
+        try {
+            const errors = validationResult(req);
+            if (!errors.isEmpty()) {
+                return res.status(400).json({ success: false, errors: errors.array() });
+            }
+
+            const email = String(req.query.email).trim();
+            const result = await databases.listDocuments(
+                config.databaseId,
+                config.collections.students,
+                [Query.equal('email', email), Query.limit(1)]
+            );
+
+            if (!result.documents.length) {
+                return res.status(404).json({ success: false, error: 'Student profile not found' });
+            }
+
+            return res.status(200).json({ success: true, data: result.documents[0] });
+        } catch (error: any) {
+            console.error('Get student by email error:', error);
+            return res.status(500).json({ success: false, error: error.message || 'Failed to fetch student profile' });
         }
     }
 );
