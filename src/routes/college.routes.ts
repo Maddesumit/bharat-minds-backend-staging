@@ -7,6 +7,7 @@
 import { Router, Request, Response } from 'express';
 import { query, param, validationResult } from 'express-validator';
 import * as collegeService from '../services/college.service';
+import * as collegeInsightsService from '../services/college-insights.service';
 import { CollegeType, CounsellingType } from '../types/domain.types';
 
 const router = Router();
@@ -68,6 +69,54 @@ router.get(
             return res.status(200).json(result);
         } catch (error: any) {
             console.error('Get college by code error:', error);
+            return res.status(500).json({
+                success: false,
+                error: 'Internal server error',
+            });
+        }
+    }
+);
+
+/**
+ * GET /api/colleges/:code/insights
+ * Extra college details for new-tab view:
+ * - coursesOfferedCount (inferred from cutoff collections)
+ * - cutoff trend series for a specific branchCode (+ optional category)
+ *
+ * Query params:
+ * - branchCode (optional)
+ * - category (optional)
+ */
+router.get(
+    '/:code/insights',
+    [
+        param('code').notEmpty().withMessage('College code is required'),
+        query('branchCode').optional().isString(),
+        query('category').optional().isString(),
+    ],
+    async (req: Request, res: Response) => {
+        try {
+            const errors = validationResult(req);
+            if (!errors.isEmpty()) {
+                return res.status(400).json({
+                    success: false,
+                    errors: errors.array(),
+                });
+            }
+
+            const result = await collegeInsightsService.getCollegeInsights({
+                collegeCode: req.params.code,
+                branchCode: (req.query.branchCode as string) || undefined,
+                category: (req.query.category as string) || undefined,
+            });
+
+            if (!result.success) {
+                return res.status(404).json(result);
+            }
+
+            return res.status(200).json(result);
+        } catch (error: any) {
+            console.error('Get college insights error:', error);
             return res.status(500).json({
                 success: false,
                 error: 'Internal server error',
