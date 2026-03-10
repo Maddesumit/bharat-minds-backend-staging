@@ -91,7 +91,8 @@ router.post(
             });
 
             if (!userResult.success || !userResult.data) {
-                return res.status(400).json(userResult);
+                const status = userResult.code === 409 ? 409 : 400;
+                return res.status(status).json(userResult);
             }
 
             const userId = userResult.data.$id;
