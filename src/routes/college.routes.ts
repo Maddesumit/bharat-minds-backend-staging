@@ -125,6 +125,49 @@ router.get(
     }
 );
 
+
+router.get(
+    '/:code/eligible-cutoffs',
+    [
+        param('code').notEmpty().withMessage('College code is required'),
+        query('branchCode').notEmpty().withMessage('branchCode is required'),
+        query('baseCategory').notEmpty().withMessage('baseCategory is required'),
+        query('hasKannada').notEmpty().withMessage('hasKannada is required'),
+        query('hasRural').notEmpty().withMessage('hasRural is required'),
+        query('hasHK').notEmpty().withMessage('hasHK is required'),
+    ],
+    async (req: Request, res: Response) => {
+        try {
+            const errors = validationResult(req);
+            if (!errors.isEmpty()) {
+                return res.status(400).json({
+                    success: false,
+                    errors: errors.array(),
+                });
+            }
+
+            const parseBool = (v: any) => String(v).toLowerCase() === 'true';
+
+            const result = await collegeInsightsService.getEligibleCutoffs({
+                collegeCode: req.params.code,
+                branchCode: String(req.query.branchCode),
+                baseCategory: String(req.query.baseCategory),
+                hasKannada: parseBool(req.query.hasKannada),
+                hasRural: parseBool(req.query.hasRural),
+                hasHK: parseBool(req.query.hasHK),
+            });
+
+            return res.status(200).json(result);
+        } catch (error: any) {
+            console.error('Get eligible cutoffs error:', error);
+            return res.status(500).json({
+                success: false,
+                error: 'Internal server error',
+            });
+        }
+    }
+);
+
 /**
  * GET /api/colleges/cities/list
  * Get list of all cities
