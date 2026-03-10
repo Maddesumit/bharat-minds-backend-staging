@@ -47,10 +47,32 @@ export async function createUser(data: CreateUserDTO) {
         };
     } catch (error: any) {
         console.error('Create user error:', error);
+        const errorType = error?.type;
+        const code = error?.code;
+
+        // Map common duplicates to clearer messages
+        if (code === 409 || errorType === 'user_already_exists') {
+            return {
+                success: false,
+                error: 'Email is already registered. Please log in.',
+                code,
+                type: errorType,
+            };
+        }
+        if (code === 409 || errorType === 'user_phone_already_exists') {
+            return {
+                success: false,
+                error: 'Phone number is already registered. Please log in or use a different number.',
+                code,
+                type: errorType,
+            };
+        }
+
         return {
             success: false,
             error: error.message || 'Failed to create user',
-            code: error.code,
+            code,
+            type: errorType,
         };
     }
 }
