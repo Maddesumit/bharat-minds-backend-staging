@@ -77,6 +77,26 @@ export interface FeeData {
 }
 
 /**
+ * Metric data structure
+ */
+export interface MetricData {
+    collegeCode: string;
+    academicYear: number;
+    placementRate?: number;
+    averagePackage?: number;
+    highestPackage?: number;
+    nirfRanking?: number;
+    naacGrade?: string;
+    facultyStudentRatio?: number;
+    researchPublications?: number;
+    infrastructureScore?: number;
+    industryConnections?: number;
+    alumniScore?: number;
+    overallRating?: number;
+    lastUpdated: string;
+}
+
+/**
  * Standardized college comparison result
  */
 export interface CollegeComparison {
@@ -84,10 +104,20 @@ export interface CollegeComparison {
     collegeName: string;
     collegeType: string;
     city: string;
+    district: string;
+    // Fee breakdown
     fees?: number;
-    distance?: number; // In kilometers
+    tuitionFees?: number;
+    hostelFees?: number;
+    otherFees?: number;
+    feeType?: string;
+    // Metrics breakdown
     placementRate?: number;
-    rating?: number;
+    nirfRanking?: number;
+    overallRating?: number;
+    naacGrade?: string;
+    // Location & Scoring
+    distance?: number; // In kilometers
     overallScore?: number; // Normalized score 0-100
 }
 
@@ -170,27 +200,54 @@ async function fetchCollegeFees(
 }
 
 /**
- * Fetch performance metrics for a specific college
+ * Fetch performance metrics for multiple colleges
  */
-async function fetchCollegeMetrics(collegeCode: string): Promise<any | null> {
+async function fetchCollegeMetricsBatch(collegeCodes: string[]): Promise<Map<string, MetricData>> {
+    const metricsMap = new Map<string, MetricData>();
+    
     try {
-        const result = await databases.listDocuments(
-            config.databaseId,
-            config.collections.collegeMetrics,
-            [
-                Query.equal('collegeCode', collegeCode),
-                Query.orderDesc('academicYear'),
-                Query.limit(1)
-            ]
+        if (!collegeCodes.length) return metricsMap;
+
+        const queries = [
+            Query.equal('collegeCode', collegeCodes),
+            Query.orderDesc('academicYear'),
+            Query.limit(collegeCodes.length * 2) // Latest records focus
+        ];
+
+        const result = await withRetry(() => 
+            databases.listDocuments(
+                config.databaseId,
+                config.collections.collegeMetrics,
+                queries
+            )
         );
 
-        if (result.documents.length > 0) {
-            return result.documents[0];
-        }
-        return null;
+        // Map latest metrics per college
+        result.documents.forEach((doc: any) => {
+            if (!metricsMap.has(doc.collegeCode)) {
+                metricsMap.set(doc.collegeCode, {
+                    collegeCode: doc.collegeCode,
+                    academicYear: doc.academicYear,
+                    placementRate: doc.placementRate,
+                    averagePackage: doc.averagePackage,
+                    highestPackage: doc.highestPackage,
+                    nirfRanking: doc.nirfRanking,
+                    naacGrade: doc.naacGrade,
+                    facultyStudentRatio: doc.facultyStudentRatio,
+                    researchPublications: doc.researchPublications,
+                    infrastructureScore: doc.infrastructureScore,
+                    industryConnections: doc.industryConnections,
+                    alumniScore: doc.alumniScore,
+                    overallRating: doc.overallRating,
+                    lastUpdated: doc.lastUpdated
+                });
+            }
+        });
+
+        return metricsMap;
     } catch (error) {
-        console.error(`Error fetching metrics for ${collegeCode}:`, error);
-        return null;
+        console.error(`Error fetching metrics batch:`, error);
+        return metricsMap;
     }
 }
 
@@ -238,16 +295,64 @@ function calculateComparisonScore(
     }
 
     // Rating component (Higher is better, assuming 1-5 or 1-10 normalized to percentage)
-    if (comparison.rating !== undefined) {
+    if (comparison.overallRating !== undefined) {
         // Assume rating is out of 5 based on common patterns, normalization logic can be adjusted
-        const ratingNormalization = comparison.rating > 5 ? 10 : 5;
-        const ratingScore = (comparison.rating / ratingNormalization) * weights.rating;
+        const ratingNormalization = comparison.overallRating > 5 ? 10 : 5;
+        const ratingScore = (comparison.overallRating / ratingNormalization) * weights.rating;
         score += ratingScore;
         totalWeight += weights.rating;
     }
 
     // Normalize final score to 0-100
     return totalWeight > 0 ? Math.round((score / totalWeight) * 100) : 0;
+}
+
+/**
+ * Aggregate all comparison data sources into a unified structure
+ */
+function aggregateComparisonData(
+    colleges: any[],
+    feeMap: Map<string, FeeData>,
+    metricsMap: Map<string, MetricData>,
+    criteria: ComparisonCriteria
+): CollegeComparison[] {
+    return colleges.map(college => {
+        const feeData = feeMap.get(college.collegeCode);
+        const metricData = metricsMap.get(college.collegeCode);
+
+        const comparison: CollegeComparison = {
+            collegeCode: college.collegeCode,
+            collegeName: college.collegeName,
+            collegeType: college.collegeType,
+            city: college.city,
+            district: college.district,
+            // Fees
+            fees: feeData?.totalFees,
+            tuitionFees: feeData?.tuitionFees,
+            hostelFees: feeData?.hostelFees,
+            otherFees: feeData?.otherFees,
+            feeType: feeData?.feeType,
+            // Metrics
+            placementRate: metricData?.placementRate || college.placementRate,
+            nirfRanking: metricData?.nirfRanking,
+            overallRating: metricData?.overallRating || college.rating,
+            naacGrade: metricData?.naacGrade
+        };
+
+        // Calculate distance if coordinates are available
+        if (criteria.studentLocation && 
+            college.latitude !== undefined && 
+            college.longitude !== undefined) {
+            comparison.distance = calculateDistance(
+                criteria.studentLocation.latitude,
+                criteria.studentLocation.longitude,
+                college.latitude,
+                college.longitude
+            );
+        }
+
+        return comparison;
+    });
 }
 
 /**
@@ -259,59 +364,34 @@ export async function compareColleges(criteria: ComparisonCriteria) {
             throw new Error('No college codes provided for comparison');
         }
 
-        const comparisonResults: CollegeComparison[] = [];
+        // 1. Fetch data from all sources in parallel
+        const [feeMap, metricsMap] = await Promise.all([
+            fetchCollegeFees(criteria.collegeCodes),
+            fetchCollegeMetricsBatch(criteria.collegeCodes)
+        ]);
 
-        // 0. Pre-fetch fees in batch
-        const feeMap = await fetchCollegeFees(criteria.collegeCodes);
-
-        // 1. Fetch data for each college
+        const colleges: any[] = [];
         for (const code of criteria.collegeCodes) {
             const collegeResult = await collegeService.getCollegeByCode(code);
-            
-            if (!collegeResult.success || !collegeResult.data) {
-                continue; // Skip colleges that don't exist
+            if (collegeResult.success && collegeResult.data) {
+                colleges.push(collegeResult.data);
             }
-
-            const college = collegeResult.data;
-            const feeData = feeMap.get(code);
-            const metrics = await fetchCollegeMetrics(code);
-
-            const comparison: CollegeComparison = {
-                collegeCode: college.collegeCode,
-                collegeName: college.collegeName,
-                collegeType: college.collegeType,
-                city: college.city,
-                fees: feeData?.totalFees || undefined,
-                placementRate: metrics?.placementRate || undefined,
-                rating: metrics?.overallRating || college.rating || undefined
-            };
-
-            // Calculate distance if coordinates are available
-            if (criteria.studentLocation && 
-                college.latitude !== undefined && 
-                college.longitude !== undefined) {
-                comparison.distance = calculateDistance(
-                    criteria.studentLocation.latitude,
-                    criteria.studentLocation.longitude,
-                    college.latitude,
-                    college.longitude
-                );
-            }
-
-            comparisonResults.push(comparison);
         }
 
-        // 2. Calculate min/max for normalization
+        // 2. Aggregate Data
+        const comparisonResults = aggregateComparisonData(colleges, feeMap, metricsMap, criteria);
+
+        // 3. Calculate min/max for normalization
         const maxFees = Math.max(...comparisonResults.map(c => c.fees || 0), 0);
         const maxDist = Math.max(...comparisonResults.map(c => c.distance || 0), 0);
 
-        // 3. Calculate scores and Finalize
+        // 4. Calculate scores and Finalize
         const finalizedResults = comparisonResults.map(comp => ({
             ...comp,
             overallScore: calculateComparisonScore(comp, criteria, { maxFees, maxDist })
         }));
 
-        // 4. Sort by overall score (highest first)
+        // 5. Sort by overall score (highest first)
         finalizedResults.sort((a, b) => (b.overallScore || 0) - (a.overallScore || 0));
 
         return {
