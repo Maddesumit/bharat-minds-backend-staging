@@ -46,6 +46,7 @@ export const config = {
         r1r2Hk: process.env.APPWRITE_R1R2_HK_COLLECTION_ID || 'r1r2_hk',
         seatMatrix: process.env.APPWRITE_SEAT_MATRIX_COLLECTION_ID || 'seat_matrix',
         collegeFees: process.env.APPWRITE_COLLEGE_FEES_COLLECTION_ID || 'college_fees',
+        collegeMetrics: process.env.APPWRITE_COLLEGE_METRICS_COLLECTION_ID || 'college_metrics',
 
         // Backward-compatible aliases (existing services reference these keys)
         colleges: process.env.APPWRITE_COLLEGES_COLLECTION_ID || (process.env.APPWRITE_COLLEGES_INFO_COLLECTION_ID || 'colleges_info'),

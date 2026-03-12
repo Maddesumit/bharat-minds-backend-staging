@@ -10,8 +10,9 @@
  * 3. colleges - College master data
  * 4. college_courses - Courses offered by colleges
  * 5. college_fees - Detailed fee structure
- * 6. user_preferences - User's option entry preferences
- * 7. cutoff_data - DELETED
+ * 6. college_metrics - Performance and ranking metrics
+ * 7. user_preferences - User's option entry preferences
+ * 8. cutoff_data - DELETED
  * 
  * INDEXING STRATEGY:
  * - Primary keys: Always indexed
@@ -272,7 +273,53 @@ export const CollegeFeesSchema = {
 };
 
 // ============================================================================
-// COLLECTION 6: user_preferences
+// COLLECTION 6: college_metrics
+// ============================================================================
+
+/**
+ * College Metrics Collection
+ * 
+ * Collection ID: college_metrics
+ * Purpose: Performance metrics, rankings, and ratings for colleges
+ */
+export const CollegeMetricsSchema = {
+    collectionId: 'college_metrics',
+    collectionName: 'College Metrics',
+
+    attributes: [
+        { key: 'collegeCode', type: 'string', size: 20, required: true },
+        { key: 'academicYear', type: 'integer', required: true },
+        { key: 'placementRate', type: 'integer', required: false },
+        { key: 'averagePackage', type: 'integer', required: false },
+        { key: 'highestPackage', type: 'integer', required: false },
+        { key: 'nirfRanking', type: 'integer', required: false },
+        { key: 'naacGrade', type: 'string', size: 10, required: false },
+        { key: 'facultyStudentRatio', type: 'float', required: false },
+        { key: 'researchPublications', type: 'integer', required: false },
+        { key: 'infrastructureScore', type: 'integer', required: false },
+        { key: 'industryConnections', type: 'integer', required: false },
+        { key: 'alumniScore', type: 'integer', required: false },
+        { key: 'overallRating', type: 'float', required: false },
+        { key: 'lastUpdated', type: 'datetime', required: true },
+    ],
+
+    indexes: [
+        { key: 'idx_primary_lookup', type: 'key', attributes: ['collegeCode', 'academicYear'] },
+        { key: 'idx_placementRate', type: 'key', attributes: ['placementRate'] },
+        { key: 'idx_nirfRanking', type: 'key', attributes: ['nirfRanking'] },
+        { key: 'idx_overallRating', type: 'key', attributes: ['overallRating'] },
+    ],
+
+    permissions: {
+        create: ['admins'],
+        read: ['any'],
+        update: ['admins'],
+        delete: ['admins'],
+    }
+};
+
+// ============================================================================
+// COLLECTION 7: user_preferences
 // ============================================================================
 
 /**
@@ -327,6 +374,7 @@ export const AppwriteSchemas = {
     colleges: CollegesSchema,
     collegeCourses: CollegeCoursesSchema,
     collegeFees: CollegeFeesSchema,
+    collegeMetrics: CollegeMetricsSchema,
     userPreferences: UserPreferencesSchema,
 };
 
