@@ -153,6 +153,13 @@ export interface College {
     website?: string;
     established?: number;
 
+    // Comparison Attributes
+    latitude?: number;
+    longitude?: number;
+    averageFees?: number;
+    placementRate?: number;
+    rating?: number;
+
     // Indexing
     createdAt: string;
     updatedAt: string;
