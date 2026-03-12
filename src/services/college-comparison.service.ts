@@ -8,6 +8,43 @@
 import { Query } from 'node-appwrite';
 import { databases, config } from '../config/appwrite.config';
 import collegeService from './college.service';
+import { College } from '../types/domain.types';
+
+/**
+ * Wrapper for database operations with timeout and retry logic
+ */
+async function withRetry<T>(
+    operation: () => Promise<T>,
+    maxRetries: number = 3,
+    timeoutMs: number = 30000
+): Promise<T> {
+    let lastError: any;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            const timeoutPromise = new Promise<never>((_, reject) => {
+                setTimeout(() => reject(new Error('Operation timeout')), timeoutMs);
+            });
+
+            const result = await Promise.race([
+                operation(),
+                timeoutPromise
+            ]);
+
+            return result;
+        } catch (error: any) {
+            lastError = error;
+            console.error(`Attempt ${attempt}/${maxRetries} failed:`, error.message);
+
+            if (attempt < maxRetries) {
+                const delay = Math.pow(2, attempt - 1) * 1000;
+                await new Promise(resolve => setTimeout(resolve, delay));
+            }
+        }
+    }
+
+    throw lastError;
+}
 
 /**
  * Criteria for comparing colleges
@@ -24,6 +61,19 @@ export interface ComparisonCriteria {
         placement?: boolean;
         rating?: boolean;
     };
+}
+
+/**
+ * Fee data structure
+ */
+export interface FeeData {
+    tuitionFees: number;
+    hostelFees?: number;
+    otherFees?: number;
+    totalFees: number;
+    feeType: string;
+    academicYear: number;
+    category: string;
 }
 
 /**
@@ -58,27 +108,64 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
 }
 
 /**
- * Fetch fees for a specific college
+ * Fetch fees for multiple colleges with optional filters
  */
-async function fetchCollegeFees(collegeCode: string): Promise<number | null> {
+async function fetchCollegeFees(
+    collegeCodes: string[], 
+    filters?: { 
+        courseCode?: string; 
+        category?: string; 
+        academicYear?: number; 
+    }
+): Promise<Map<string, FeeData>> {
+    const feeMap = new Map<string, FeeData>();
+    
     try {
-        const result = await databases.listDocuments(
-            config.databaseId,
-            config.collections.collegeFees,
-            [
-                Query.equal('collegeCode', collegeCode),
-                Query.orderDesc('academicYear'),
-                Query.limit(1)
-            ]
+        if (!collegeCodes.length) return feeMap;
+
+        // Build query filters
+        const queries = [
+            Query.equal('collegeCode', collegeCodes),
+            Query.limit(collegeCodes.length * 5) // Handle multiple entries per college if needed
+        ];
+
+        if (filters?.courseCode) queries.push(Query.equal('courseCode', filters.courseCode));
+        if (filters?.category) queries.push(Query.equal('category', filters.category));
+        
+        // If academicYear is provided, filter by it. Otherwise, we'll sort and pick latest in-memory per college
+        if (filters?.academicYear) {
+            queries.push(Query.equal('academicYear', filters.academicYear));
+        } else {
+            queries.push(Query.orderDesc('academicYear'));
+        }
+
+        const result = await withRetry(() => 
+            databases.listDocuments(
+                config.databaseId,
+                config.collections.collegeFees,
+                queries
+            )
         );
 
-        if (result.documents.length > 0) {
-            return result.documents[0].totalFees || result.documents[0].tuitionFees || null;
-        }
-        return null;
+        // Process results - pick latest year per collegeCode
+        result.documents.forEach((doc: any) => {
+            if (!feeMap.has(doc.collegeCode)) {
+                feeMap.set(doc.collegeCode, {
+                    tuitionFees: doc.tuitionFees,
+                    hostelFees: doc.hostelFees,
+                    otherFees: doc.otherFees,
+                    totalFees: doc.totalFees,
+                    feeType: doc.feeType,
+                    academicYear: doc.academicYear,
+                    category: doc.category
+                });
+            }
+        });
+
+        return feeMap;
     } catch (error) {
-        console.error(`Error fetching fees for ${collegeCode}:`, error);
-        return null;
+        console.error(`Error fetching fees for batch:`, error);
+        return feeMap;
     }
 }
 
@@ -174,16 +261,19 @@ export async function compareColleges(criteria: ComparisonCriteria) {
 
         const comparisonResults: CollegeComparison[] = [];
 
+        // 0. Pre-fetch fees in batch
+        const feeMap = await fetchCollegeFees(criteria.collegeCodes);
+
         // 1. Fetch data for each college
         for (const code of criteria.collegeCodes) {
             const collegeResult = await collegeService.getCollegeByCode(code);
-
+            
             if (!collegeResult.success || !collegeResult.data) {
                 continue; // Skip colleges that don't exist
             }
 
             const college = collegeResult.data;
-            const fees = await fetchCollegeFees(code);
+            const feeData = feeMap.get(code);
             const metrics = await fetchCollegeMetrics(code);
 
             const comparison: CollegeComparison = {
@@ -191,9 +281,9 @@ export async function compareColleges(criteria: ComparisonCriteria) {
                 collegeName: college.collegeName,
                 collegeType: college.collegeType,
                 city: college.city,
-                fees: fees || undefined,
+                fees: feeData?.totalFees || undefined,
                 placementRate: metrics?.placementRate || undefined,
-                rating: metrics?.overallRating || college.rating || undefined // Use metric rating or college master rating
+                rating: metrics?.overallRating || college.rating || undefined
             };
 
             // Calculate distance if coordinates are available
