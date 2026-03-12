@@ -416,11 +416,14 @@ router.get(
 router.post(
     '/compare',
     [
-        body('collegeCodes').isArray({ min: 1 }).withMessage('At least one college code is required for comparison'),
-        body('studentLocation').optional().isObject().withMessage('Student location must be an object'),
+        body('collegeCodes').isArray({ min: 2, max: 10 }).withMessage('Provide 2-10 college codes'),
+        body('collegeCodes.*').isString().withMessage('Each college code must be a string'),
         body('studentLocation.latitude').optional().isFloat({ min: -90, max: 90 }).withMessage('Invalid latitude'),
         body('studentLocation.longitude').optional().isFloat({ min: -180, max: 180 }).withMessage('Invalid longitude'),
-        body('priorities').optional().isObject().withMessage('Priorities must be an object')
+        body('priorities.fees').optional().isBoolean().withMessage('fees priority must be boolean'),
+        body('priorities.distance').optional().isBoolean().withMessage('distance priority must be boolean'),
+        body('priorities.placement').optional().isBoolean().withMessage('placement priority must be boolean'),
+        body('priorities.rating').optional().isBoolean().withMessage('rating priority must be boolean')
     ],
     async (req: Request, res: Response) => {
         try {
