@@ -5,9 +5,10 @@
  */
 
 import { Router, Request, Response } from 'express';
-import { query, param, validationResult } from 'express-validator';
+import { query, param, body, validationResult } from 'express-validator';
 import * as collegeService from '../services/college.service';
 import * as collegeInsightsService from '../services/college-insights.service';
+import * as collegeComparisonService from '../services/college-comparison.service';
 import { CollegeType, CounsellingType } from '../types/domain.types';
 
 const router = Router();
@@ -400,6 +401,46 @@ router.get(
             return res.status(200).json(result);
         } catch (error: any) {
             console.error('Get types by course type error:', error);
+            return res.status(500).json({
+                success: false,
+                error: 'Internal server error',
+            });
+        }
+    }
+);
+
+/**
+ * POST /api/colleges/compare
+ * Compare multiple colleges based on input criteria
+ */
+router.post(
+    '/compare',
+    [
+        body('collegeCodes').isArray({ min: 1 }).withMessage('At least one college code is required for comparison'),
+        body('studentLocation').optional().isObject().withMessage('Student location must be an object'),
+        body('studentLocation.latitude').optional().isFloat({ min: -90, max: 90 }).withMessage('Invalid latitude'),
+        body('studentLocation.longitude').optional().isFloat({ min: -180, max: 180 }).withMessage('Invalid longitude'),
+        body('priorities').optional().isObject().withMessage('Priorities must be an object')
+    ],
+    async (req: Request, res: Response) => {
+        try {
+            const errors = validationResult(req);
+            if (!errors.isEmpty()) {
+                return res.status(400).json({
+                    success: false,
+                    errors: errors.array(),
+                });
+            }
+
+            const result = await collegeComparisonService.compareColleges(req.body);
+
+            if (!result.success) {
+                return res.status(404).json(result);
+            }
+
+            return res.status(200).json(result);
+        } catch (error: any) {
+            console.error('College comparison route error:', error);
             return res.status(500).json({
                 success: false,
                 error: 'Internal server error',
