@@ -10,6 +10,7 @@ import * as collegeService from '../services/college.service';
 import * as collegeInsightsService from '../services/college-insights.service';
 import * as collegeComparisonService from '../services/college-comparison.service';
 import { CollegeType, CounsellingType } from '../types/domain.types';
+import { jsonToCsv } from '../utils/export.util';
 
 const router = Router();
 
@@ -209,6 +210,67 @@ router.get(
             return res.status(200).json(result);
         } catch (error: any) {
             console.error('Single college comparison route error:', error);
+            return res.status(500).json({
+                success: false,
+                error: 'Internal server error',
+            });
+        }
+    }
+);
+
+/**
+ * POST /api/colleges/batch-compare
+ * Advanced batch comparison with filters and export support
+ */
+router.post(
+    '/batch-compare',
+    [
+        body('collegeCodes').isArray({ min: 1, max: 50 }).withMessage('Provide 1-50 college codes'),
+        body('collegeCodes.*').isString().withMessage('Each code must be a string'),
+        body('courseCode').optional().isString(),
+        body('category').optional().isString(),
+        body('academicYear').optional().isInt({ min: 2000, max: 2100 }),
+        body('includeMetrics').optional().isBoolean(),
+        body('includeFees').optional().isBoolean(),
+        body('exportFormat').optional().isIn(['json', 'csv', 'pdf']).withMessage('Invalid export format'),
+        body('priorities').optional().isObject(),
+        body('studentLocation').optional().isObject()
+    ],
+    async (req: Request, res: Response) => {
+        try {
+            const errors = validationResult(req);
+            if (!errors.isEmpty()) {
+                return res.status(400).json({
+                    success: false,
+                    errors: errors.array(),
+                });
+            }
+
+            const result = await collegeComparisonService.compareCollegesBatch(req.body);
+
+            if (!result.success || !result.data) {
+                return res.status(404).json(result);
+            }
+
+            // Handle Exports
+            const format = req.body.exportFormat;
+            if (format === 'csv') {
+                const csv = jsonToCsv(result.data);
+                res.setHeader('Content-Type', 'text/csv');
+                res.setHeader('Content-Disposition', 'attachment; filename=college_comparison.csv');
+                return res.status(200).send(csv);
+            }
+
+            if (format === 'pdf') {
+                return res.status(400).json({
+                    success: false,
+                    error: 'PDF export is not yet implemented'
+                });
+            }
+
+            return res.status(200).json(result);
+        } catch (error: any) {
+            console.error('Batch comparison route error:', error);
             return res.status(500).json({
                 success: false,
                 error: 'Internal server error',

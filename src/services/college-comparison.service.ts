@@ -46,9 +46,6 @@ async function withRetry<T>(
     throw lastError;
 }
 
-/**
- * Criteria for comparing colleges
- */
 export interface ComparisonCriteria {
     collegeCodes: string[];
     studentLocation?: {
@@ -61,6 +58,17 @@ export interface ComparisonCriteria {
         placement?: boolean;
         rating?: boolean;
     };
+}
+
+/**
+ * Advanced criteria for batch comparing colleges
+ */
+export interface AdvancedComparisonCriteria extends ComparisonCriteria {
+    courseCode?: string;
+    category?: string;
+    academicYear?: number;
+    includeMetrics?: boolean;
+    includeFees?: boolean;
 }
 
 /**
@@ -484,7 +492,74 @@ export async function getSingleCollegeComparison(
     }
 }
 
+/**
+ * Advanced batch comparison for up to 50 colleges
+ */
+export async function compareCollegesBatch(criteria: AdvancedComparisonCriteria) {
+    try {
+        if (!criteria.collegeCodes || criteria.collegeCodes.length === 0) {
+            throw new Error('No college codes provided for comparison');
+        }
+
+        if (criteria.collegeCodes.length > 50) {
+            throw new Error('Maximum 50 colleges allowed for batch comparison');
+        }
+
+        // 1. Fetch data from all sources in parallel
+        // We only fetch what is requested, but default to BOTH if neither specified (to maintain compatibility)
+        const fetchFees = criteria.includeFees !== false;
+        const fetchMetrics = criteria.includeMetrics !== false;
+
+        const [feeMap, metricsMap] = await Promise.all([
+            fetchFees ? fetchCollegeFees(criteria.collegeCodes, {
+                courseCode: criteria.courseCode,
+                category: criteria.category,
+                academicYear: criteria.academicYear
+            }) : Promise.resolve(new Map<string, FeeData>()),
+            fetchMetrics ? fetchCollegeMetricsBatch(criteria.collegeCodes) : Promise.resolve(new Map<string, MetricData>())
+        ]);
+
+        const colleges: any[] = [];
+        for (const code of criteria.collegeCodes) {
+            const collegeResult = await collegeService.getCollegeByCode(code);
+            if (collegeResult.success && collegeResult.data) {
+                colleges.push(collegeResult.data);
+            }
+        }
+
+        // 2. Aggregate Data
+        const comparisonResults = aggregateComparisonData(colleges, feeMap, metricsMap, criteria);
+
+        // 3. Calculate min/max for normalization
+        const maxFees = Math.max(...comparisonResults.map(c => c.fees || 0), 0);
+        const maxDist = Math.max(...comparisonResults.map(c => c.distance || 0), 0);
+
+        // 4. Calculate scores and Finalize
+        const finalizedResults = comparisonResults.map(comp => ({
+            ...comp,
+            overallScore: calculateComparisonScore(comp, criteria, { maxFees, maxDist })
+        }));
+
+        // 5. Sort by overall score (highest first)
+        finalizedResults.sort((a, b) => (b.overallScore || 0) - (a.overallScore || 0));
+
+        return {
+            success: true,
+            data: finalizedResults,
+            count: finalizedResults.length
+        };
+
+    } catch (error: any) {
+        console.error('Batch compare colleges error:', error);
+        return {
+            success: false,
+            error: error.message || 'Failed to compare colleges batch'
+        };
+    }
+}
+
 export default {
     compareColleges,
-    getSingleCollegeComparison
+    getSingleCollegeComparison,
+    compareCollegesBatch
 };
