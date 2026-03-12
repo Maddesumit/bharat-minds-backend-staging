@@ -409,6 +409,82 @@ export async function compareColleges(criteria: ComparisonCriteria) {
     }
 }
 
+/**
+ * Get detailed comparison for a single college, optionally including similar ones
+ */
+export async function getSingleCollegeComparison(
+    collegeCode: string,
+    options: {
+        courseCode?: string;
+        category?: string;
+        academicYear?: number;
+        includeSimilar?: boolean;
+    }
+) {
+    try {
+        // 1. Fetch target college
+        const targetResult = await collegeService.getCollegeByCode(collegeCode);
+        if (!targetResult.success || !targetResult.data) {
+            throw new Error('College not found');
+        }
+
+        let colleges = [targetResult.data];
+        const collegeCodes = [collegeCode];
+
+        // 2. Fetch similar colleges if requested
+        if (options.includeSimilar) {
+            const similarResult = await collegeService.getSimilarColleges(collegeCode, 5);
+            if (similarResult.success && similarResult.data) {
+                similarResult.data.forEach(c => {
+                    if (!collegeCodes.includes(c.collegeCode)) {
+                        colleges.push(c);
+                        collegeCodes.push(c.collegeCode);
+                    }
+                });
+            }
+        }
+
+        // 3. Fetch data for all colleges in parallel
+        const [feeMap, metricsMap] = await Promise.all([
+            fetchCollegeFees(collegeCodes, {
+                courseCode: options.courseCode,
+                category: options.category,
+                academicYear: options.academicYear
+            }),
+            fetchCollegeMetricsBatch(collegeCodes)
+        ]);
+
+        // 4. Aggregate and finalize
+        // We pass empty priorities since this is a general view, or we could accept them in options
+        const comparisonResults = aggregateComparisonData(colleges, feeMap, metricsMap, { collegeCodes });
+
+        // Calculate min/max for normalization (using the whole batch for relative scoring)
+        const maxFees = Math.max(...comparisonResults.map(c => c.fees || 0), 0);
+        const maxDist = Math.max(...comparisonResults.map(c => c.distance || 0), 0);
+
+        const finalizedResults = comparisonResults.map(comp => ({
+            ...comp,
+            overallScore: calculateComparisonScore(comp, { collegeCodes }, { maxFees, maxDist })
+        }));
+
+        return {
+            success: true,
+            data: {
+                target: finalizedResults[0],
+                similar: finalizedResults.slice(1)
+            }
+        };
+
+    } catch (error: any) {
+        console.error('Single college comparison error:', error);
+        return {
+            success: false,
+            error: error.message || 'Failed to get comparison'
+        };
+    }
+}
+
 export default {
-    compareColleges
+    compareColleges,
+    getSingleCollegeComparison
 };

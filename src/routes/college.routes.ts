@@ -170,6 +170,54 @@ router.get(
 );
 
 /**
+ * GET /api/colleges/:code/compare
+ * Get comparison data for a single college + optional similar colleges
+ */
+router.get(
+    '/:code/compare',
+    [
+        param('code').notEmpty().withMessage('College code is required'),
+        query('courseCode').optional().isString(),
+        query('category').optional().isString(),
+        query('academicYear').optional().isInt().toInt(),
+        query('includeSimilar').optional().toBoolean()
+    ],
+    async (req: Request, res: Response) => {
+        try {
+            const errors = validationResult(req);
+            if (!errors.isEmpty()) {
+                return res.status(400).json({
+                    success: false,
+                    errors: errors.array(),
+                });
+            }
+
+            const result = await collegeComparisonService.getSingleCollegeComparison(
+                req.params.code,
+                {
+                    courseCode: req.query.courseCode as string,
+                    category: req.query.category as string,
+                    academicYear: req.query.academicYear ? Number(req.query.academicYear) : undefined,
+                    includeSimilar: req.query.includeSimilar as any === true
+                }
+            );
+
+            if (!result.success) {
+                return res.status(404).json(result);
+            }
+
+            return res.status(200).json(result);
+        } catch (error: any) {
+            console.error('Single college comparison route error:', error);
+            return res.status(500).json({
+                success: false,
+                error: 'Internal server error',
+            });
+        }
+    }
+);
+
+/**
  * GET /api/colleges/cities/list
  * Get list of all cities
  */

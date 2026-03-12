@@ -372,6 +372,36 @@ export function getAllCollegeTypes() {
     };
 }
 
+/**
+ * Get similar colleges based on city or type
+ */
+export async function getSimilarColleges(collegeCode: string, limit: number = 5) {
+    try {
+        const target = await getCollegeByCode(collegeCode);
+        if (!target.success || !target.data) return { success: false, error: 'Target college not found' };
+
+        const { city, collegeType } = target.data;
+
+        // Fetch all colleges to perform similarity check (since we avoid complex Appwrite OR queries)
+        const allCollegesResult = await searchColleges({});
+        if (!allCollegesResult.success || !allCollegesResult.data) return allCollegesResult;
+
+        const similar = allCollegesResult.data
+            .filter(c => c.collegeCode !== collegeCode) // Exclude target
+            .filter(c => c.city === city || c.collegeType === collegeType)
+            .slice(0, limit);
+
+        return {
+            success: true,
+            data: similar,
+            count: similar.length
+        };
+    } catch (error: any) {
+        console.error('Get similar colleges error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
 export default {
     searchColleges,
     getCollegeByCode,
@@ -382,4 +412,5 @@ export default {
     getCollegesByCity,
     createCollege,
     getAllCollegeTypes,
+    getSimilarColleges
 };
