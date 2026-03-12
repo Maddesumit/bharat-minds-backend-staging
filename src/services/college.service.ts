@@ -24,6 +24,11 @@ interface CollegeDocument extends Models.Document {
     website?: string;
     established?: number;
     accreditation?: string;
+    latitude?: number;
+    longitude?: number;
+    averageFees?: number;
+    placementRate?: number;
+    rating?: number;
 }
 
 function normalizeCollegeDocument(doc: any): CollegeDocument {
@@ -41,6 +46,13 @@ function normalizeCollegeDocument(doc: any): CollegeDocument {
         website: (doc.website ?? doc.Website ?? '').toString() || undefined,
         established: doc.established ?? doc.Established,
         accreditation: (doc.accreditation ?? doc.Accredation ?? doc.Accreditation ?? '').toString() || undefined,
+        latitude: doc.latitude !== undefined ? Number(doc.latitude) : undefined,
+        longitude: doc.longitude !== undefined ? Number(doc.longitude) : undefined,
+        averageFees: doc.averageFees !== undefined ? Number(doc.averageFees) : undefined,
+        placementRate: doc.placementRate !== undefined ? Number(doc.placementRate) : undefined,
+        rating: doc.rating !== undefined ? Number(doc.rating) : undefined,
+        createdAt: doc.$createdAt || doc.createdAt || '',
+        updatedAt: doc.$updatedAt || doc.updatedAt || '',
     } as CollegeDocument;
 }
 
@@ -84,7 +96,7 @@ export interface CreateCollegeDTO {
 /**
  * Search colleges with filters
  */
-export async function searchColleges(filters: CollegeSearchFilters) {
+export async function searchColleges(filters: CollegeSearchFilters): Promise<{ success: boolean; data?: any[]; total?: number; error?: string }> {
     try {
         const documents = await listAllDocuments(config.collections.collegesInfo, 5000);
         let results = documents.map(normalizeCollegeDocument);
@@ -126,8 +138,8 @@ export async function searchColleges(filters: CollegeSearchFilters) {
         }
 
         // Parse counsellingTypes field (handle both string and JSON array)
-        const parsed = results.map((doc) => {
-            let counsellingTypes = [];
+        const parsed: (College & { counsellingTypes: string[] })[] = results.map((doc) => {
+            let counsellingTypes: string[] = [];
             try {
                 // Try to parse as JSON array first
                 counsellingTypes = JSON.parse(doc.counsellingTypes || '[]');
@@ -142,7 +154,7 @@ export async function searchColleges(filters: CollegeSearchFilters) {
             return {
                 ...doc,
                 counsellingTypes
-            };
+            } as unknown as (College & { counsellingTypes: string[] });
         });
 
         return {
