@@ -9,8 +9,9 @@
  * 2. student_ranks - Course-wise ranks for each user
  * 3. colleges - College master data
  * 4. college_courses - Courses offered by colleges
- * 5. user_preferences - User's option entry preferences
- * 6. cutoff_data - DELETED
+ * 5. college_fees - Detailed fee structure
+ * 6. user_preferences - User's option entry preferences
+ * 7. cutoff_data - DELETED
  * 
  * INDEXING STRATEGY:
  * - Primary keys: Always indexed
@@ -153,6 +154,13 @@ export const CollegesSchema = {
         { key: 'website', type: 'string', size: 255, required: false },
         { key: 'established', type: 'integer', required: false },
         { key: 'accreditation', type: 'string', size: 50, required: false, array: true },
+
+        // Comparison Attributes
+        { key: 'latitude', type: 'float', required: false },
+        { key: 'longitude', type: 'float', required: false },
+        { key: 'averageFees', type: 'integer', required: false },
+        { key: 'placementRate', type: 'integer', required: false },
+        { key: 'rating', type: 'integer', required: false },
     ],
 
     indexes: [
@@ -160,6 +168,11 @@ export const CollegesSchema = {
         { key: 'idx_collegeName', type: 'fulltext', attributes: ['collegeName'] },
         { key: 'idx_city', type: 'key', attributes: ['city'] },
         { key: 'idx_collegeType', type: 'key', attributes: ['collegeType'] },
+        { key: 'idx_latitude', type: 'key', attributes: ['latitude'] },
+        { key: 'idx_longitude', type: 'key', attributes: ['longitude'] },
+        { key: 'idx_averageFees', type: 'key', attributes: ['averageFees'] },
+        { key: 'idx_placementRate', type: 'key', attributes: ['placementRate'] },
+        { key: 'idx_rating', type: 'key', attributes: ['rating'] },
     ],
 
     permissions: {
@@ -215,7 +228,51 @@ export const CollegeCoursesSchema = {
 };
 
 // ============================================================================
-// COLLECTION 5: user_preferences
+// COLLECTION 5: college_fees
+// ============================================================================
+
+/**
+ * College Fees Collection
+ * 
+ * Collection ID: college_fees
+ * Purpose: Detailed fee structure for colleges and courses
+ */
+export const CollegeFeesSchema = {
+    collectionId: 'college_fees',
+    collectionName: 'College Fees',
+
+    attributes: [
+        { key: 'collegeCode', type: 'string', size: 20, required: true },
+        { key: 'courseCode', type: 'string', size: 20, required: true },
+        { key: 'category', type: 'string', size: 50, required: true },
+        { key: 'academicYear', type: 'integer', required: true },
+        { key: 'tuitionFees', type: 'integer', required: true },
+        { key: 'hostelFees', type: 'integer', required: false },
+        { key: 'messFees', type: 'integer', required: false },
+        { key: 'otherFees', type: 'integer', required: false },
+        { key: 'totalFees', type: 'integer', required: true },
+        { key: 'feeType', type: 'string', size: 50, required: true },
+        { key: 'isRefundable', type: 'boolean', required: false },
+        { key: 'lastUpdated', type: 'datetime', required: true },
+    ],
+
+    indexes: [
+        { key: 'idx_primary_lookup', type: 'key', attributes: ['collegeCode', 'courseCode', 'category', 'academicYear'] },
+        { key: 'idx_collegeCode', type: 'key', attributes: ['collegeCode'] },
+        { key: 'idx_courseCode', type: 'key', attributes: ['courseCode'] },
+        { key: 'idx_category', type: 'key', attributes: ['category'] },
+    ],
+
+    permissions: {
+        create: ['admins'],
+        read: ['any'],
+        update: ['admins'],
+        delete: ['admins'],
+    }
+};
+
+// ============================================================================
+// COLLECTION 6: user_preferences
 // ============================================================================
 
 /**
@@ -269,6 +326,7 @@ export const AppwriteSchemas = {
     studentRanks: StudentRanksSchema,
     colleges: CollegesSchema,
     collegeCourses: CollegeCoursesSchema,
+    collegeFees: CollegeFeesSchema,
     userPreferences: UserPreferencesSchema,
 };
 
