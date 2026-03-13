@@ -102,6 +102,9 @@ app.get('/', (req: Request, res: Response) => {
                 getByCode: 'GET /api/colleges/:code',
                 listCities: 'GET /api/colleges/cities/list',
                 listTypes: 'GET /api/colleges/types/list',
+                compare: 'POST /api/colleges/compare (body: { collegeCodes: [] })',
+                singleCompare: 'GET /api/colleges/:code/compare',
+                batchCompare: 'POST /api/colleges/batch-compare (body: { collegeCodes: [] })',
             },
             courses: {
                 base: '/api/courses',
