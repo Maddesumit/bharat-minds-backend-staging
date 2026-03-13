@@ -1,7 +1,7 @@
-
 import { Databases, Query, ID } from 'node-appwrite';
 import { databases, config } from '../config/appwrite.config';
 import { CounsellingType } from '../types/domain.types';
+import * as collegeComparisonService from './college-comparison.service';
 
 // ============================================================================
 // DATABASE HELPERS WITH TIMEOUT & RETRY
@@ -87,6 +87,12 @@ export interface RecommendationInfo {
     year: number;
     round: number;
     type?: string;
+    // New fields for comparison integration
+    comparisonReady: boolean;
+    fees?: number;
+    placementRate?: number;
+    rating?: number;
+    distance?: number;
 }
 
 export interface RecommendationSummary {
@@ -95,10 +101,17 @@ export interface RecommendationSummary {
     safe: number;
 }
 
+export interface ComparisonTrigger {
+    combination: string[]; // array of collegeCodes
+    combinationNames: string[]; // array of collegeNames
+    reason: string;
+}
+
 export interface GenerationResult {
     recommendations: RecommendationInfo[];
     summary: RecommendationSummary;
     listScore: number;
+    comparisonTriggers: ComparisonTrigger[];
 }
 
 // ============================================================================
@@ -378,6 +391,96 @@ export async function getStudentRanks(userId: string) {
 }
 
 /**
+ * Generate Comparison Triggers
+ * Identifies suggested college combinations for comparison
+ */
+export function generateComparisonTriggers(recommendations: RecommendationInfo[]): ComparisonTrigger[] {
+    const triggers: ComparisonTrigger[] = [];
+    
+    // Sort by probability to find best in each tier
+    const reach = recommendations.filter(r => r.tier === 'REACH').slice(0, 2);
+    const target = recommendations.filter(r => r.tier === 'TARGET').slice(0, 2);
+    const safe = recommendations.filter(r => r.tier === 'SAFE').slice(0, 2);
+
+    if (reach.length > 0 && target.length > 0 && safe.length > 0) {
+        triggers.push({
+            combination: [reach[0].collegeCode, target[0].collegeCode, safe[0].collegeCode],
+            combinationNames: [reach[0].collegeName, target[0].collegeName, safe[0].collegeName],
+            reason: "Compare your top Reach, Target, and Safe options to see the value difference versus admission probability."
+        });
+    }
+
+    if (target.length >= 2) {
+        triggers.push({
+            combination: target.map(t => t.collegeCode),
+            combinationNames: target.map(t => t.collegeName),
+            reason: "Compare your best Target colleges to decide which one offers better infrastructure and placements."
+        });
+    }
+
+    if (safe.length >= 2) {
+        triggers.push({
+            combination: safe.map(s => s.collegeCode),
+            combinationNames: safe.map(s => s.collegeName),
+            reason: "Evaluate your Safe options based on fees and location distance."
+        });
+    }
+
+    return triggers;
+}
+
+/**
+ * Enrich recommendations with comparison data (fees, metrics, distance)
+ */
+async function enrichRecommendationsWithComparison(
+    recommendations: RecommendationInfo[], 
+    studentProfile?: any
+): Promise<RecommendationInfo[]> {
+    if (recommendations.length === 0) return recommendations;
+
+    const collegeCodes = [...new Set(recommendations.map(r => r.collegeCode))];
+    
+    try {
+        // Fetch comparison data for as many as possible (limit 50 as per batch service)
+        const codesToFetch = collegeCodes.slice(0, 50);
+        
+        const comparisonResult = await collegeComparisonService.compareCollegesBatch({
+            collegeCodes: codesToFetch,
+            studentLocation: (studentProfile?.latitude && studentProfile?.longitude) ? {
+                latitude: studentProfile.latitude,
+                longitude: studentProfile.longitude
+            } : undefined,
+            includeFees: true,
+            includeMetrics: true
+        });
+
+        if (comparisonResult.success && comparisonResult.data) {
+            const comparisonMap = new Map(comparisonResult.data.map((c: any) => [c.collegeCode, c]));
+            
+            recommendations.forEach(r => {
+                const comp = comparisonMap.get(r.collegeCode);
+                if (comp) {
+                    r.comparisonReady = true;
+                    r.fees = comp.fees; // totalFees
+                    r.placementRate = comp.placementRate;
+                    r.rating = comp.overallRating;
+                    r.distance = comp.distance;
+                } else {
+                    r.comparisonReady = false;
+                }
+            });
+        } else {
+            recommendations.forEach(r => r.comparisonReady = false);
+        }
+    } catch (error) {
+        console.error('Error enriching recommendations:', error);
+        recommendations.forEach(r => r.comparisonReady = false);
+    }
+    
+    return recommendations;
+}
+
+/**
  * Generate Option List (Main Algorithm)
  */
 export async function generateOptionList(userId: string) {
@@ -402,17 +505,22 @@ export async function generateOptionList(userId: string) {
         console.log(`[OPTION GENERATOR] User: ${userId}, Course Category: ${courseCategory}`);
 
         // 2. Route to appropriate recommendation algorithm based on course category
-        // Farm Science, Veterinary, and Medical use Farm_Agri/Farm_AgriV2 collections
-        // Engineering and other standard courses use historical_cutoffs collection
-
+        let result: any;
         if (courseCategory === 'Farm Science' || courseCategory === 'Veterinary' || courseCategory === 'Medical') {
             console.log(`[ROUTING] Using Farm/Medical algorithm for ${courseCategory}`);
-            return await generateFarmMedicalRecommendations(profile);
+            result = await generateFarmMedicalRecommendations(profile);
+        } else {
+            // Default to Engineering/Standard algorithm
+            console.log(`[ROUTING] Using Engineering algorithm for ${courseCategory}`);
+            result = await generateEngineeringRecommendations(profile);
         }
 
-        // Default to Engineering/Standard algorithm
-        console.log(`[ROUTING] Using Engineering algorithm for ${courseCategory}`);
-        return await generateEngineeringRecommendations(profile);
+        if (result.success && result.data) {
+            // 3. Add Comparison Triggers
+            result.data.comparisonTriggers = generateComparisonTriggers(result.data.recommendations);
+        }
+
+        return result;
 
     } catch (error: any) {
         console.error('Generate option list error:', error);
@@ -527,7 +635,8 @@ export async function generateEngineeringRecommendations(studentProfile: any) {
             probability,
             tier,
             year: doc.academicYear,
-            round: doc.round
+            round: doc.round,
+            comparisonReady: false
         };
     });
 
@@ -570,14 +679,16 @@ export async function generateEngineeringRecommendations(studentProfile: any) {
         return b.cutoffRank - a.cutoffRank; // DESC
     });
 
-    // Step 6: Generate Summary
     const summary: RecommendationSummary = {
         reach: dedupedList.filter(o => o.tier === 'REACH').length,
         target: dedupedList.filter(o => o.tier === 'TARGET').length,
         safe: dedupedList.filter(o => o.tier === 'SAFE').length
     };
 
-    // Step 7: Calculate List Score
+    // Step 7: Enrich with Comparison Data
+    await enrichRecommendationsWithComparison(dedupedList, studentProfile);
+
+    // Step 8: Calculate List Score
     const listScore = calculateListScore(summary);
 
     // Step 8: Return Output
@@ -665,7 +776,8 @@ async function generateFarmMedicalRecommendations(studentProfile: any) {
                     probability,
                     tier,
                     year: doc.year || 2024, // Use year from document if available
-                    round: doc.round || 1
+                    round: doc.round || 1,
+                    comparisonReady: false
                 };
             });
 
@@ -691,6 +803,9 @@ async function generateFarmMedicalRecommendations(studentProfile: any) {
                 target: dedupedList.filter(o => o.tier === 'TARGET').length,
                 safe: dedupedList.filter(o => o.tier === 'SAFE').length
             };
+
+            // Enrich with Comparison Data
+            await enrichRecommendationsWithComparison(dedupedList, studentProfile);
 
             const listScore = calculateListScore(summary);
 
@@ -843,7 +958,8 @@ async function searchEngineeringOptions(studentProfile: any, queryTerm: string) 
             tier,
             year: doc.academicYear,
             round: doc.round,
-            type: doc.collegeType || ''
+            type: doc.collegeType || '',
+            comparisonReady: false
         };
 
         const key = `${opt.collegeCode}-${opt.branchCode}`;
@@ -859,6 +975,9 @@ async function searchEngineeringOptions(studentProfile: any, queryTerm: string) 
         if (a.probability !== b.probability) return a.probability - b.probability;
         return b.cutoffRank - a.cutoffRank;
     });
+
+    // Enrich with Comparison Data
+    await enrichRecommendationsWithComparison(recommendations, studentProfile);
 
     return {
         success: true,
@@ -922,7 +1041,8 @@ async function searchFarmMedicalOptions(studentProfile: any, queryTerm: string) 
                     probability,
                     tier,
                     year: doc.year || 2024,
-                    round: doc.round || 1
+                    round: doc.round || 1,
+                    comparisonReady: false
                 };
 
                 const key = `${opt.collegeCode}-${opt.branchCode}`;
@@ -940,6 +1060,9 @@ async function searchFarmMedicalOptions(studentProfile: any, queryTerm: string) 
         if (a.probability !== b.probability) return a.probability - b.probability;
         return b.cutoffRank - a.cutoffRank;
     });
+
+    // Enrich with Comparison Data
+    await enrichRecommendationsWithComparison(recommendations, studentProfile);
 
     return {
         success: true,
