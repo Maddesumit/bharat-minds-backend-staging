@@ -95,6 +95,8 @@ router.get(
         param('code').notEmpty().withMessage('College code is required'),
         query('branchCode').optional().isString(),
         query('category').optional().isString(),
+        query('lat').optional().isFloat({ min: -90, max: 90 }).withMessage('Invalid latitude'),
+        query('lng').optional().isFloat({ min: -180, max: 180 }).withMessage('Invalid longitude')
     ],
     async (req: Request, res: Response) => {
         try {
@@ -110,6 +112,10 @@ router.get(
                 collegeCode: req.params.code,
                 branchCode: (req.query.branchCode as string) || undefined,
                 category: (req.query.category as string) || undefined,
+                studentLocation: (req.query.lat && req.query.lng) ? {
+                    latitude: Number(req.query.lat),
+                    longitude: Number(req.query.lng)
+                } : undefined
             });
 
             if (!result.success) {
