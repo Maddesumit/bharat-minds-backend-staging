@@ -1,6 +1,7 @@
 import { Query } from 'node-appwrite';
 import { databases, config } from '../config/appwrite.config';
 import * as collegeService from './college.service';
+import * as collegeComparisonService from './college-comparison.service';
 
 async function listAllDocuments(collectionId: string, queries: any[], maxDocs: number = 5000): Promise<any[]> {
     const out: any[] = [];
@@ -184,6 +185,7 @@ export async function getCollegeInsights(args: {
     collegeCode: string;
     branchCode?: string;
     category?: string;
+    studentLocation?: { latitude: number; longitude: number };
 }) {
     const { collegeCode, branchCode, category } = args;
 
@@ -342,6 +344,93 @@ export async function getCollegeInsights(args: {
         }
     }
 
+    // --- Start Comparison Integration ---
+    let comparisonMetrics: any = undefined;
+    let comparisonSummary: any = null;
+
+    try {
+        // Fetch Comparison Data
+        const [feeMap, metricsMap] = await Promise.all([
+            collegeComparisonService.compareCollegesBatch({
+                collegeCodes: [collegeCode],
+                category: category,
+                includeFees: true,
+                includeMetrics: false
+            }).then(r => r.success ? new Map([[collegeCode, r.data?.[0]]]) : new Map()),
+            collegeComparisonService.compareCollegesBatch({
+                collegeCodes: [collegeCode],
+                includeFees: false,
+                includeMetrics: true
+            }).then(r => r.success ? new Map([[collegeCode, r.data?.[0]]]) : new Map())
+        ]);
+
+        const compDoc = feeMap.get(collegeCode) || metricsMap.get(collegeCode);
+        const feeData = feeMap.get(collegeCode);
+        const metricData = metricsMap.get(collegeCode);
+
+        // Calculate Distance
+        let distance: number | undefined = undefined;
+        if (args.studentLocation && college.data?.latitude && college.data?.longitude) {
+            // Re-use calculation or call helper if needed. For now simple haversine as in comparison service
+            const lat1 = args.studentLocation.latitude;
+            const lon1 = args.studentLocation.longitude;
+            const lat2 = college.data.latitude;
+            const lon2 = college.data.longitude;
+            const R = 6371;
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            distance = Math.round(R * c * 10) / 10;
+        }
+
+        comparisonMetrics = {
+            fees: {
+                tuitionFees: feeData?.tuitionFees || 0,
+                hostelFees: feeData?.hostelFees || 0,
+                totalFees: feeData?.fees || 0,
+                academicYear: feeData?.academicYear || 2024
+            },
+            performance: {
+                placementRate: metricData?.placementRate || 0,
+                averagePackage: (metricData as any)?.averagePackage || 0,
+                nirfRanking: metricData?.nirfRanking || null,
+                naacGrade: metricData?.naacGrade || 'N/A'
+            },
+            infrastructure: {
+                rating: metricData?.overallRating || 0,
+                facilitiesScore: (metricData as any)?.infrastructureScore || 0
+            },
+            location: {
+                distanceFromStudent: distance
+            }
+        };
+
+        // SWOT Logic for Summary
+        const strengths = [];
+        const considerations = [];
+
+        if (comparisonMetrics.performance.placementRate > 85) strengths.push('High placement rate');
+        if (comparisonMetrics.performance.nirfRanking && comparisonMetrics.performance.nirfRanking < 100) strengths.push('Top 100 NIRF');
+        if (comparisonMetrics.infrastructure.rating > 4) strengths.push('Excellent infrastructure');
+        
+        if (comparisonMetrics.fees.totalFees > 200000) considerations.push('High fee structure');
+        if (distance && distance > 500) considerations.push('Significant distance from home');
+        if (comparisonMetrics.performance.placementRate < 60) considerations.push('Avergae placement history');
+
+        comparisonSummary = {
+            overallScore: (metricData as any)?.overallScore || 0,
+            strengths: strengths.length ? strengths : ['Stable academic record'],
+            considerations: considerations.length ? considerations : ['Standard admission process']
+        };
+
+    } catch (error) {
+        console.error('Error integrating comparison metrics:', error);
+    }
+    // --- End Comparison Integration ---
+
     return {
         success: true,
         data: {
@@ -355,6 +444,8 @@ export async function getCollegeInsights(args: {
                 byYear: trendByYear,
                 summary: trendSummary,
             },
+            comparisonMetrics,
+            comparisonSummary
         },
     };
 }
