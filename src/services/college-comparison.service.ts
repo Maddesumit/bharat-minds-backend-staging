@@ -133,7 +133,7 @@ export interface CollegeComparison {
  * Calculate distance between two points using Haversine formula
  * @returns distance in kilometers
  */
-function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+export function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
     const R = 6371; // Radius of the Earth in km
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLon = (lon2 - lon1) * Math.PI / 180;
@@ -148,7 +148,7 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
 /**
  * Fetch fees for multiple colleges with optional filters
  */
-async function fetchCollegeFees(
+export async function fetchCollegeFees(
     collegeCodes: string[], 
     filters?: { 
         courseCode?: string; 
@@ -210,7 +210,7 @@ async function fetchCollegeFees(
 /**
  * Fetch performance metrics for multiple colleges
  */
-async function fetchCollegeMetricsBatch(collegeCodes: string[]): Promise<Map<string, MetricData>> {
+export async function fetchCollegeMetricsBatch(collegeCodes: string[]): Promise<Map<string, MetricData>> {
     const metricsMap = new Map<string, MetricData>();
     
     try {
@@ -262,7 +262,7 @@ async function fetchCollegeMetricsBatch(collegeCodes: string[]): Promise<Map<str
 /**
  * Calculate a composite score for a college based on criteria and priorities
  */
-function calculateComparisonScore(
+export function calculateComparisonScore(
     comparison: CollegeComparison,
     criteria: ComparisonCriteria,
     minMaxRecords: {
