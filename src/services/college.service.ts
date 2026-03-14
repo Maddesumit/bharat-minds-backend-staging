@@ -121,8 +121,9 @@ export async function searchColleges(filters: CollegeSearchFilters): Promise<{ s
         }
 
         if (filters.collegeType) {
+            const targetType = filters.collegeType.toLowerCase();
             results = results.filter((doc) =>
-                doc.collegeType === filters.collegeType
+                doc.collegeType.toLowerCase() === targetType
             );
         }
 

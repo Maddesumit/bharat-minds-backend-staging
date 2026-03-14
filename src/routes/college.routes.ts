@@ -188,7 +188,13 @@ router.get(
         query('category').optional().isString(),
         query('academicYear').optional().isInt().toInt(),
         query('includeSimilar').optional().toBoolean(),
-        query('collegeTypePreference').optional().isIn(['government', 'aided', 'private', 'any']),
+        query('collegeTypePreference').optional().custom((value) => {
+            const allowed = ['government', 'aided', 'private', 'any'];
+            if (!allowed.includes(value.toLowerCase())) {
+                throw new Error('Invalid collegeTypePreference');
+            }
+            return true;
+        }),
         query('establishmentYearPreference').optional().isIn(['newest', 'oldest', 'none'])
     ],
     async (req: Request, res: Response) => {
@@ -245,7 +251,13 @@ router.post(
         body('exportFormat').optional().isIn(['json', 'csv', 'pdf']).withMessage('Invalid export format'),
         body('priorities').optional().isObject(),
         body('studentLocation').optional().isObject(),
-        body('collegeTypePreference').optional().isIn(['government', 'aided', 'private', 'any']),
+        body('collegeTypePreference').optional().custom((value) => {
+            const allowed = ['government', 'aided', 'private', 'any'];
+            if (!allowed.includes(value.toLowerCase())) {
+                throw new Error('Invalid collegeTypePreference');
+            }
+            return true;
+        }),
         body('establishmentYearPreference').optional().isIn(['newest', 'oldest', 'none'])
     ],
     async (req: Request, res: Response) => {
@@ -358,7 +370,15 @@ router.get('/types/list', async (req: Request, res: Response) => {
  */
 router.get(
     '/by-type/:type',
-    [param('type').isIn(Object.values(CollegeType)).withMessage('Invalid college type')],
+    [
+        param('type').custom((value) => {
+            const allowedTypes = Object.values(CollegeType).map(t => t.toLowerCase());
+            if (!allowedTypes.includes(value.toLowerCase())) {
+                throw new Error('Invalid college type');
+            }
+            return true;
+        })
+    ],
     async (req: Request, res: Response) => {
         try {
             const errors = validationResult(req);
@@ -548,7 +568,13 @@ router.post(
         body('priorities.rating').optional().isBoolean().withMessage('rating priority must be boolean'),
         body('priorities.type').optional().isBoolean().withMessage('type priority must be boolean'),
         body('priorities.year').optional().isBoolean().withMessage('year priority must be boolean'),
-        body('collegeTypePreference').optional().isIn(['government', 'aided', 'private', 'any']),
+        body('collegeTypePreference').optional().custom((value) => {
+            const allowed = ['government', 'aided', 'private', 'any'];
+            if (!allowed.includes(value.toLowerCase())) {
+                throw new Error('Invalid collegeTypePreference');
+            }
+            return true;
+        }),
         body('establishmentYearPreference').optional().isIn(['newest', 'oldest', 'none'])
     ],
     async (req: Request, res: Response) => {
