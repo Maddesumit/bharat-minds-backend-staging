@@ -100,6 +100,8 @@ export enum SeatType {
  */
 export enum CollegeType {
     GOVERNMENT = 'Government',
+    AIDED = 'Aided',
+    PRIVATE = 'Private',
     VTU_PRIVATE = 'VTU-Affiliated Private',
     AUTONOMOUS = 'Autonomous',
     DEEMED = 'Deemed University',
@@ -152,6 +154,13 @@ export interface College {
     address?: string;
     website?: string;
     established?: number;
+
+    // Comparison Attributes
+    latitude?: number;
+    longitude?: number;
+    averageFees?: number;
+    placementRate?: number;
+    rating?: number;
 
     // Indexing
     createdAt: string;

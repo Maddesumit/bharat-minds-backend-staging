@@ -5,10 +5,12 @@
  */
 
 import { Router, Request, Response } from 'express';
-import { query, param, validationResult } from 'express-validator';
+import { query, param, body, validationResult } from 'express-validator';
 import * as collegeService from '../services/college.service';
 import * as collegeInsightsService from '../services/college-insights.service';
+import * as collegeComparisonService from '../services/college-comparison.service';
 import { CollegeType, CounsellingType } from '../types/domain.types';
+import { jsonToCsv } from '../utils/export.util';
 
 const router = Router();
 
@@ -93,6 +95,8 @@ router.get(
         param('code').notEmpty().withMessage('College code is required'),
         query('branchCode').optional().isString(),
         query('category').optional().isString(),
+        query('lat').optional().isFloat({ min: -90, max: 90 }).withMessage('Invalid latitude'),
+        query('lng').optional().isFloat({ min: -180, max: 180 }).withMessage('Invalid longitude')
     ],
     async (req: Request, res: Response) => {
         try {
@@ -108,6 +112,10 @@ router.get(
                 collegeCode: req.params.code,
                 branchCode: (req.query.branchCode as string) || undefined,
                 category: (req.query.category as string) || undefined,
+                studentLocation: (req.query.lat && req.query.lng) ? {
+                    latitude: Number(req.query.lat),
+                    longitude: Number(req.query.lng)
+                } : undefined
             });
 
             if (!result.success) {
@@ -160,6 +168,133 @@ router.get(
             return res.status(200).json(result);
         } catch (error: any) {
             console.error('Get eligible cutoffs error:', error);
+            return res.status(500).json({
+                success: false,
+                error: 'Internal server error',
+            });
+        }
+    }
+);
+
+/**
+ * GET /api/colleges/:code/compare
+ * Get comparison data for a single college + optional similar colleges
+ */
+router.get(
+    '/:code/compare',
+    [
+        param('code').notEmpty().withMessage('College code is required'),
+        query('courseCode').optional().isString(),
+        query('category').optional().isString(),
+        query('academicYear').optional().isInt().toInt(),
+        query('includeSimilar').optional().toBoolean(),
+        query('collegeTypePreference').optional().custom((value) => {
+            const allowed = ['government', 'aided', 'private', 'any'];
+            if (!allowed.includes(value.toLowerCase())) {
+                throw new Error('Invalid collegeTypePreference');
+            }
+            return true;
+        }),
+        query('establishmentYearPreference').optional().isIn(['newest', 'oldest', 'none'])
+    ],
+    async (req: Request, res: Response) => {
+        try {
+            const errors = validationResult(req);
+            if (!errors.isEmpty()) {
+                return res.status(400).json({
+                    success: false,
+                    errors: errors.array(),
+                });
+            }
+
+            const result = await collegeComparisonService.getSingleCollegeComparison(
+                req.params.code,
+                {
+                    courseCode: req.query.courseCode as string,
+                    category: req.query.category as string,
+                    academicYear: req.query.academicYear ? Number(req.query.academicYear) : undefined,
+                    includeSimilar: req.query.includeSimilar as any === true,
+                    collegeTypePreference: req.query.collegeTypePreference as any,
+                    establishmentYearPreference: req.query.establishmentYearPreference as any
+                }
+            );
+
+            if (!result.success) {
+                return res.status(404).json(result);
+            }
+
+            return res.status(200).json(result);
+        } catch (error: any) {
+            console.error('Single college comparison route error:', error);
+            return res.status(500).json({
+                success: false,
+                error: 'Internal server error',
+            });
+        }
+    }
+);
+
+/**
+ * POST /api/colleges/batch-compare
+ * Advanced batch comparison with filters and export support
+ */
+router.post(
+    '/batch-compare',
+    [
+        body('collegeCodes').isArray({ min: 1, max: 50 }).withMessage('Provide 1-50 college codes'),
+        body('collegeCodes.*').isString().withMessage('Each code must be a string'),
+        body('courseCode').optional().isString(),
+        body('category').optional().isString(),
+        body('academicYear').optional().isInt({ min: 2000, max: 2100 }),
+        body('includeMetrics').optional().isBoolean(),
+        body('includeFees').optional().isBoolean(),
+        body('exportFormat').optional().isIn(['json', 'csv', 'pdf']).withMessage('Invalid export format'),
+        body('priorities').optional().isObject(),
+        body('studentLocation').optional().isObject(),
+        body('collegeTypePreference').optional().custom((value) => {
+            const allowed = ['government', 'aided', 'private', 'any'];
+            if (!allowed.includes(value.toLowerCase())) {
+                throw new Error('Invalid collegeTypePreference');
+            }
+            return true;
+        }),
+        body('establishmentYearPreference').optional().isIn(['newest', 'oldest', 'none'])
+    ],
+    async (req: Request, res: Response) => {
+        try {
+            const errors = validationResult(req);
+            if (!errors.isEmpty()) {
+                return res.status(400).json({
+                    success: false,
+                    errors: errors.array(),
+                });
+            }
+
+            const result = await collegeComparisonService.compareCollegesBatch(req.body);
+
+            if (!result.success || !result.data) {
+                return res.status(404).json(result);
+            }
+
+            // Handle Exports
+            const format = req.body.exportFormat;
+            if (format === 'csv') {
+                const csv = jsonToCsv(result.data);
+                res.setHeader('Content-Type', 'text/csv');
+                res.setHeader('Content-Disposition', 'attachment; filename=college_comparison.csv');
+                return res.status(200).send(csv);
+            }
+
+            if (format === 'pdf') {
+                return res.status(400).json({
+                    success: false,
+                    error: 'PDF export is not yet implemented'
+                });
+            }
+
+            return res.status(200).json(result);
+        } catch (error: any) {
+            console.error('Batch comparison route error:', error);
             return res.status(500).json({
                 success: false,
                 error: 'Internal server error',
@@ -235,7 +370,15 @@ router.get('/types/list', async (req: Request, res: Response) => {
  */
 router.get(
     '/by-type/:type',
-    [param('type').isIn(Object.values(CollegeType)).withMessage('Invalid college type')],
+    [
+        param('type').custom((value) => {
+            const allowedTypes = Object.values(CollegeType).map(t => t.toLowerCase());
+            if (!allowedTypes.includes(value.toLowerCase())) {
+                throw new Error('Invalid college type');
+            }
+            return true;
+        })
+    ],
     async (req: Request, res: Response) => {
         try {
             const errors = validationResult(req);
@@ -400,6 +543,59 @@ router.get(
             return res.status(200).json(result);
         } catch (error: any) {
             console.error('Get types by course type error:', error);
+            return res.status(500).json({
+                success: false,
+                error: 'Internal server error',
+            });
+        }
+    }
+);
+
+/**
+ * POST /api/colleges/compare
+ * Compare multiple colleges based on input criteria
+ */
+router.post(
+    '/compare',
+    [
+        body('collegeCodes').isArray({ min: 2, max: 10 }).withMessage('Provide 2-10 college codes'),
+        body('collegeCodes.*').isString().withMessage('Each college code must be a string'),
+        body('studentLocation.latitude').optional().isFloat({ min: -90, max: 90 }).withMessage('Invalid latitude'),
+        body('studentLocation.longitude').optional().isFloat({ min: -180, max: 180 }).withMessage('Invalid longitude'),
+        body('priorities.fees').optional().isBoolean().withMessage('fees priority must be boolean'),
+        body('priorities.distance').optional().isBoolean().withMessage('distance priority must be boolean'),
+        body('priorities.placement').optional().isBoolean().withMessage('placement priority must be boolean'),
+        body('priorities.rating').optional().isBoolean().withMessage('rating priority must be boolean'),
+        body('priorities.type').optional().isBoolean().withMessage('type priority must be boolean'),
+        body('priorities.year').optional().isBoolean().withMessage('year priority must be boolean'),
+        body('collegeTypePreference').optional().custom((value) => {
+            const allowed = ['government', 'aided', 'private', 'any'];
+            if (!allowed.includes(value.toLowerCase())) {
+                throw new Error('Invalid collegeTypePreference');
+            }
+            return true;
+        }),
+        body('establishmentYearPreference').optional().isIn(['newest', 'oldest', 'none'])
+    ],
+    async (req: Request, res: Response) => {
+        try {
+            const errors = validationResult(req);
+            if (!errors.isEmpty()) {
+                return res.status(400).json({
+                    success: false,
+                    errors: errors.array(),
+                });
+            }
+
+            const result = await collegeComparisonService.compareColleges(req.body);
+
+            if (!result.success) {
+                return res.status(404).json(result);
+            }
+
+            return res.status(200).json(result);
+        } catch (error: any) {
+            console.error('College comparison route error:', error);
             return res.status(500).json({
                 success: false,
                 error: 'Internal server error',

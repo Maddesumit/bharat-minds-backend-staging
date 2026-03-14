@@ -24,6 +24,11 @@ interface CollegeDocument extends Models.Document {
     website?: string;
     established?: number;
     accreditation?: string;
+    latitude?: number;
+    longitude?: number;
+    averageFees?: number;
+    placementRate?: number;
+    rating?: number;
 }
 
 function normalizeCollegeDocument(doc: any): CollegeDocument {
@@ -41,6 +46,13 @@ function normalizeCollegeDocument(doc: any): CollegeDocument {
         website: (doc.website ?? doc.Website ?? '').toString() || undefined,
         established: doc.established ?? doc.Established,
         accreditation: (doc.accreditation ?? doc.Accredation ?? doc.Accreditation ?? '').toString() || undefined,
+        latitude: doc.latitude !== undefined ? Number(doc.latitude) : undefined,
+        longitude: doc.longitude !== undefined ? Number(doc.longitude) : undefined,
+        averageFees: doc.averageFees !== undefined ? Number(doc.averageFees) : undefined,
+        placementRate: doc.placementRate !== undefined ? Number(doc.placementRate) : undefined,
+        rating: doc.rating !== undefined ? Number(doc.rating) : undefined,
+        createdAt: doc.$createdAt || doc.createdAt || '',
+        updatedAt: doc.$updatedAt || doc.updatedAt || '',
     } as CollegeDocument;
 }
 
@@ -84,7 +96,7 @@ export interface CreateCollegeDTO {
 /**
  * Search colleges with filters
  */
-export async function searchColleges(filters: CollegeSearchFilters) {
+export async function searchColleges(filters: CollegeSearchFilters): Promise<{ success: boolean; data?: any[]; total?: number; error?: string }> {
     try {
         const documents = await listAllDocuments(config.collections.collegesInfo, 5000);
         let results = documents.map(normalizeCollegeDocument);
@@ -109,8 +121,9 @@ export async function searchColleges(filters: CollegeSearchFilters) {
         }
 
         if (filters.collegeType) {
+            const targetType = filters.collegeType.toLowerCase();
             results = results.filter((doc) =>
-                doc.collegeType === filters.collegeType
+                doc.collegeType.toLowerCase() === targetType
             );
         }
 
@@ -126,8 +139,8 @@ export async function searchColleges(filters: CollegeSearchFilters) {
         }
 
         // Parse counsellingTypes field (handle both string and JSON array)
-        const parsed = results.map((doc) => {
-            let counsellingTypes = [];
+        const parsed: (College & { counsellingTypes: string[] })[] = results.map((doc) => {
+            let counsellingTypes: string[] = [];
             try {
                 // Try to parse as JSON array first
                 counsellingTypes = JSON.parse(doc.counsellingTypes || '[]');
@@ -142,7 +155,7 @@ export async function searchColleges(filters: CollegeSearchFilters) {
             return {
                 ...doc,
                 counsellingTypes
-            };
+            } as unknown as (College & { counsellingTypes: string[] });
         });
 
         return {
@@ -162,27 +175,38 @@ export async function searchColleges(filters: CollegeSearchFilters) {
 /**
  * Get college by code (exact match)
  */
-export async function getCollegeByCode(collegeCode: string) {
+export async function getCollegeByCode(collegeCode: string, includeComparisonData: boolean = false) {
     try {
         const result = await searchColleges({ collegeCode });
 
-        if (!result.success || !result.data) {
-            return {
-                success: false,
-                error: result.success ? 'College not found' : (result.error || 'College not found'),
-            };
-        }
-
-        if (result.data.length === 0) {
+        if (!result.success || !result.data || result.data.length === 0) {
             return {
                 success: false,
                 error: 'College not found',
             };
         }
 
+        const college = result.data[0];
+
+        if (includeComparisonData) {
+            // Dynamic import to avoid circular dependency
+            const comparisonService = await import('./college-comparison.service');
+            const comparisonResult = await comparisonService.getSingleCollegeComparison(collegeCode, {});
+            
+            if (comparisonResult.success && comparisonResult.data) {
+                return {
+                    success: true,
+                    data: {
+                        ...college,
+                        comparison: comparisonResult.data.target
+                    }
+                };
+            }
+        }
+
         return {
             success: true,
-            data: result.data[0],
+            data: college,
         };
     } catch (error: any) {
         console.error('Get college by code error:', error);
@@ -360,6 +384,98 @@ export function getAllCollegeTypes() {
     };
 }
 
+/**
+ * Get similar colleges based on city or type
+ */
+export async function getSimilarColleges(collegeCode: string, limit: number = 5) {
+    try {
+        const target = await getCollegeByCode(collegeCode);
+        if (!target.success || !target.data) return { success: false, error: 'Target college not found' };
+
+        const { city, collegeType } = target.data;
+
+        // Fetch all colleges to perform similarity check (since we avoid complex Appwrite OR queries)
+        const allCollegesResult = await searchColleges({});
+        if (!allCollegesResult.success || !allCollegesResult.data) return allCollegesResult;
+
+        const similar = allCollegesResult.data
+            .filter(c => c.collegeCode !== collegeCode) // Exclude target
+            .filter(c => c.city === city || c.collegeType === collegeType)
+            .slice(0, limit);
+
+        return {
+            success: true,
+            data: similar,
+            count: similar.length
+        };
+    } catch (error: any) {
+        console.error('Get similar colleges error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Get unified college data including comparison info
+ */
+export async function getCollegeForComparison(collegeCode: string) {
+    try {
+        const basicResult = await getCollegeByCode(collegeCode);
+        if (!basicResult.success || !basicResult.data) return basicResult;
+
+        const comparisonService = await import('./college-comparison.service');
+        const comparisonResult = await comparisonService.getSingleCollegeComparison(collegeCode, {});
+
+        return {
+            success: true,
+            data: {
+                ...basicResult.data,
+                comparison: (comparisonResult.success && comparisonResult.data) ? comparisonResult.data.target : undefined
+            }
+        };
+    } catch (error: any) {
+        console.error('Get college for comparison error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Get enriched college comparison objects for a list of codes
+ */
+export async function getCollegesForComparison(collegeCodes: string[]) {
+    try {
+        const basicResult = await searchColleges({});
+        if (!basicResult.success || !basicResult.data) return basicResult;
+
+        // Filter for requested codes
+        const colleges = basicResult.data.filter(c => collegeCodes.includes(c.collegeCode));
+        const foundCodes = colleges.map(c => c.collegeCode);
+
+        const comparisonService = await import('./college-comparison.service');
+        const batchResult = await comparisonService.compareColleges({ collegeCodes: foundCodes });
+
+        if (!batchResult.success || !batchResult.data) {
+             return { success: true, data: colleges };
+        }
+
+        // Map comparison data back to colleges
+        const comparisonMap = new Map(batchResult.data.map((c: any) => [c.collegeCode, c]));
+        
+        const enriched = colleges.map(c => ({
+            ...c,
+            comparison: comparisonMap.get(c.collegeCode)
+        }));
+
+        return {
+            success: true,
+            data: enriched,
+            count: enriched.length
+        };
+    } catch (error: any) {
+        console.error('Get colleges for comparison error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
 export default {
     searchColleges,
     getCollegeByCode,
@@ -370,4 +486,7 @@ export default {
     getCollegesByCity,
     createCollege,
     getAllCollegeTypes,
+    getSimilarColleges,
+    getCollegeForComparison,
+    getCollegesForComparison
 };

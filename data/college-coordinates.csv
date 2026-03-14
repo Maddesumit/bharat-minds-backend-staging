@@ -1,0 +1,215 @@
+collegeCode,collegeName,latitude,longitude,geocodingStatus
+E314,Cauvery College of Engineering,12.3051828,76.6553609,partial
+E313,Harsha Institute of Technology,13.1976048,77.7074856,partial
+E312,New Ebenezer Institute of Technology,13.0887365,77.6548471,success
+E311,Rathinam Institute of Technology,12.6439249,77.1650105,partial
+E310,Government Engineering College,12.8948535,76.1605758,success
+E309,Government Engineering College,13.4109883,78.0539956,success
+E307,Seshadripuram Institute of Technology,12.3051828,76.6553609,partial
+E306,The Chanakya University,13.1976048,77.7074856,partial
+E305,Dr. H.N. National College of Engineering,12.9767936,77.590082,partial
+E304,Anuvartik Mirji Bharatesh Institute of Technology,15.8572666,74.5069343,partial
+E303,GM University,14.4679807,75.9195682,partial
+E302,Amity University,13.2776015,77.616056,partial
+E301,Kishkinda University,15.1430224,76.9173277,partial
+E300,Akash Institute of Engineering and Technology,13.1976048,77.7074856,partial
+E299,Ghousia Institute of Technology for Women,12.9657679,77.6038627,success
+E297,Aditya College of Engineering and Technology,12.9767936,77.590082,partial
+E292,Government Engineerinering College,17.9149369,77.4880494,partial
+E291,Government Engineering College,15.7220381,75.3846247,partial
+E290,Visvesvaraya Technological University,12.3051828,76.6553609,partial
+E289,Visvesvaraya Technological University,17.3310003,76.8334228,partial
+E288,Garden City University,13.0254484,77.7067558,partial
+E287,Vidyashilp University,13.2016981,77.6008128,partial
+E286,BGS College of Engineering & Technology,12.9767936,77.590082,partial
+E285,RV University,12.9233711,77.499694,partial
+E284,Sri Jayachamarajendra College of Engineering,12.3152626,76.6119107,partial
+E283,University of Mysore,12.3059327,76.6403692,partial
+E281,Government Engineering College,14.2306761,76.3891503,success
+E279,Visvesvaraya Technological University,15.7773016,74.4648624,partial
+E278,Visvesvaraya Technological University,13.1976048,77.7074856,partial
+E275,R V Institute Of Technology and Management,12.9066501,77.5947961,success
+E274,Government Engineering College,12.8948535,76.1605758,success
+E273,Government Engineering College,15.3484144,76.1547421,partial
+E272,Government Engineering College,14.8326181,74.1348508,success
+E269,Jain College Of Engineering and Research,15.8572666,74.5069343,partial
+E265,Jain College of Engineering and Technology,15.3518378,75.1379848,partial
+E264,Basav Engineering School of Technology,16.8269061,75.6539194,success
+E258,Maharaja Institute of Technology,12.3664154,76.6891755,partial
+E257,CMR University,13.1186268,77.6600369,partial
+E255,GITAM (Deemed to be University) Bengaluru Campus,13.1976048,77.7074856,partial
+E254,A J Institute Of Engineering And Technology,12.8698101,74.8430082,partial
+E252,Mysore College Of Engineering and Management,12.3051828,76.6553609,partial
+E241,KLE Technological University,15.3690067,75.1236571,partial
+E240,Dayananda Sagar University,12.65954,77.4507652,partial
+E239,East West College Of Engineering,13.0957491,77.5901143,partial
+E238,Mysuru Royal Institute Of Technology,12.5238888,76.8961961,partial
+E237,Presidency University,12.9655881,77.6036377,partial
+E235,M. S. Ramaiah University of Applied Sciences,13.0184274,77.5079729,partial
+E232,REVA University,13.1154027,77.6357699,partial
+E227,Cauvery Institute of Technology,12.5238888,76.8961961,partial
+E222,Cambridge Institute of Technology,13.007516,77.695935,success
+E221,Biluru Gurubasava Mahaswamiji Institute of Technology,16.3338591,75.2870794,partial
+E220,Alliance University,12.7297587,77.7087603,partial
+E216,Shetty Institute of Technology,17.3310003,76.8334228,partial
+E213,Lingarajappa Engineering College,17.9149369,77.4880494,partial
+E212,Dayananda Sagar Academy of Technology & Management,12.8228206,77.5138097,success
+E211,Jain Institute of Technology,14.4679807,75.9195682,partial
+E210,G Madegowda Institute of Technology,,,failed
+E209,Jyothi Institute of Technology,12.8408707,77.511726,partial
+E207,V S M`s Somashekhar R Kothiwale Institute of Technology,,,failed
+E206,Shri Madhwa Vadiraja Institute of Technology and Management,,,failed
+E205,ATME College of Engineering,12.3038443,76.7114295,partial
+E204,Bangalore Technological Institute,12.88572,77.6997556,partial
+E203,K S School of Engineering & Management,12.9767936,77.590082,partial
+E202,Sampoorna Group of Institutions,12.9767936,77.590082,partial
+E201,Gopalan College of Engineering & Management,12.9767936,77.590082,partial
+E199,AGM Rural Engineering College,15.2077105,75.1387568,partial
+E198,Sharanbasava University,17.3310003,76.8334228,partial
+E197,Veerappa Nisty Engineering College,16.52301,76.75957,partial
+E196,Jain College of Engineering,15.8593476,74.6142405,partial
+E194,Government Engineering College,,,failed
+E193,Srinivas University,13.0221142,74.7936759,success
+E192,NULL,18.9569275,72.8290998,success
+E191,Akshaya Institute of Technology,13.3400771,77.1006208,partial
+E189,NAVKIS COLLEGE OF ENGINEERING,13.0070817,76.0992703,partial
+E188,Vijaya Vittala Institute of Technology,13.0770956,77.6659607,partial
+E186,ACS College of Engineering,12.8910127,77.4654614,partial
+E185,Angadi Institute of Technology and Management,15.8454658,74.4840995,success
+E184,C Byre Gowda Institute of Technology,13.123993,78.1329276,partial
+E181,Sri Basaveswara Institute of Technology,13.258575,76.4737675,partial
+E180,Beary's Institute of Technology,12.8698101,74.8430082,partial
+E178,The National Institute of Engineering(NORTH CAMPUS),12.3051828,76.6553609,partial
+E177,Rajeev Institute of Technology,12.9902344,76.1152288,partial
+E176,Navodaya Institute of Technology,16.1983225,77.3527444,partial
+E175,S.S.E.T.S.S.G.Balekundri Institute of Technology,15.8572666,74.5069343,partial
+E174,Dr. Sri Sri Sri Shivakumara Mahaswamyji College of Engineering,13.0993764,77.388729,partial
+E173,Sai Vidya Institute of Technology,13.1728522,77.5642789,success
+E172,R.R. Institute of Technology,12.9767936,77.590082,partial
+E171,Brindavan College of Engineering,13.1318133,77.6667991,success
+E169,Alva's Institute of Engineering & Technology,13.0683654,74.9947146,partial
+E168,Amrutha Institute of Engineering & Management Science (AIEMS),12.6474596,77.1787749,partial
+E167,K L E S's K L E College of Engineering & Technology,15.8572666,74.5069343,partial
+E165,Yenepoya Institute Of Technology,13.0683654,74.9947146,partial
+E164,Government Engineering College,15.266493,76.3872297,partial
+E163,Government Engineering College,14.7947529,75.4111439,partial
+E162,Government Engineering College,16.2723268,77.3572764,partial
+E161,Government Engineering College,12.448861,75.940958,partial
+E160,Sahyadri College Of Engineering & Management,12.8686235,74.9292875,success
+E159,Karavali Institute of Technology,12.9193091,74.8986672,success
+E158,Maharaja Institute of Technology Mysore,12.4243699,76.7089831,partial
+E157,Government Engineering College,12.6992524,77.244408,partial
+E156,K R PET KRISHNA,,,failed
+E155,Government Engineering College,13.0088135,76.1078992,success
+E154,Government Engineering College,11.9137046,76.9068818,success
+E153,S E A College of Engineering & Technology,12.9767936,77.590082,partial
+E152,S D M Institute of Tech.,12.9907413,75.3407462,success
+E151,Mangalore Institute of Technology & Engineering,12.8698101,74.8430082,partial
+E150,P E S Institute of Technology & Management,13.9326093,75.574978,partial
+E149,Cambridge Institutute of Technology,13.007516,77.695935,success
+E147,T.John Institute of technology,12.9767936,77.590082,partial
+E146,Shreedevi Institute of Technology,12.9543513,74.8863053,success
+E145,Rajarajeswari College of Engineering,12.9767936,77.590082,partial
+E144,Srinivas Institute of Technology,12.8741309,74.9397108,partial
+E142,Adhichunchanagiri University (Formerly B G S Institute of Technology) B.G.NAGARA,,,failed
+E141,PES UNIVERSITY(Electronic City Campus) Hosur Rd,12.9767936,77.590082,partial
+E139,Impact College of Engineering & Applied Sciences,13.066346,77.581628,success
+E136,Moodalakatte Institute of Technology,13.6133737,74.7286856,partial
+E135,K L S Viswanathrao Deshpande Institute of Technology,15.3299733,74.7646665,partial
+E134,Smt. Kamala & Sri Venkappa M.Agadi College of Engineering & Technology,,,failed
+E133,G S S S Institute of Engineering & Technology for Women,12.3522797,76.6289356,success
+E132,Secab Institute of Engineering & Technology,16.8269911,75.7175387,partial
+E130,Shridevi Institute of Engineering & Technology,13.3400771,77.1006208,partial
+E129,St.Joseph Engineering College,12.9193091,74.8986672,success
+E128,Sharanbasava University (Formerly Appa Institute of Engineering and Tech) SHARNBASVESHWARA INSTITUTIONS CAMPUS,17.3310003,76.8334228,partial
+E126,B M S Institute of Technology & Management,12.9767936,77.590082,partial
+E124,Rajiv Gandhi Institute of Technology,13.0332655,77.5979698,partial
+E123,Canara Engineering College Bantwal,12.8996804,74.9850191,partial
+E121,Vivekananada College of Engineering Technology,12.7632858,75.2018421,partial
+E119,K C T Engineering College,17.3310003,76.8334228,partial
+E118,RNS Institute of Technology,12.9006694,77.5178581,partial
+E116,R.L.Jalappa Institute of Technology,13.3042193,77.5112285,success
+E115,S.J B. Institute of Technology,12.9767936,77.590082,partial
+E114,G M Institute of Technology,14.4457592,75.9050804,success
+E113,Sambhram Institute of Technology,13.0895405,77.5458419,partial
+E112,Sri Krishna Institute of Technology,13.0747948,77.4990814,partial
+E111,Sri Venkateshwara College of Engineering,12.9767936,77.590082,partial
+E109,City Engineering College,12.8887621,77.5505721,partial
+E108,SAPTHAGIRI NPS UNIVERISTY #14/5,12.9767936,77.590082,partial
+E107,B N M Institute of Technology,12.9767936,77.590082,partial
+E106,East West Institute Of Technology,12.9767936,77.590082,partial
+E104,Nagarjuna College of Engineering & Technology,12.9767936,77.590082,partial
+E103,Global Academy of Technology,12.9272239,77.5262876,partial
+E102,DONBOSCO Institute of Technology,12.8966015,77.460929,success
+E101,NULL,18.9569275,72.8290998,success
+E100,K.N.S. Institute of Technology,12.9767936,77.590082,partial
+E099,New Horizon College of Engineering,12.9343108,77.6925122,partial
+E098,Atria Institute of Technology,12.9767936,77.590082,partial
+E097,CMR Institute of Technology,12.9666382,77.7116338,partial
+E096,East Point College of Engineering & Technology,12.9767936,77.590082,partial
+E095,AMC Engineering College,12.8280492,77.5888674,partial
+E094,Coorg Institute of Technology,,,failed
+E092,Vemana Institute of Technology,12.9356769,77.6248907,success
+E091,K.S. Institute of Technology,12.9767936,77.590082,partial
+E090,Sri Revana Siddeswara Institute of Technology,12.9767936,77.590082,partial
+E087,Vivekananda Institute of Technology,12.9767936,77.590082,partial
+E086,Sri Sairam College of Engineering,,,failed
+E085,APS College of Engineering,12.7858471,77.497763,partial
+E083,H.K.B.K. College of Engineering,12.9767936,77.590082,partial
+E082,JSS Academy of Technical Education,12.9061186,77.5418693,success
+E081,Sri Siddhartha Institute of Technology,13.3169905,77.0911784,success
+E079,Acharya Institute of Technology,13.0857201,77.4818588,partial
+E077,Vidya Vikas Institute of Engineering & Technology,12.3051828,76.6553609,partial
+E076,Proudadevaraya Institute of Technology,15.1959663,76.6780987,partial
+E075,Ballari Institute of Technology & Management,15.1430224,76.9173277,partial
+E071,Vidya Vardhaka College of Engineering,12.3355135,76.6188852,partial
+E070,Bahubali College of Engineering,12.8562381,76.4728485,partial
+E066,University B.D.T. College of Engineering,14.4679807,75.9195682,partial
+E065,Jawaharlal Nehru New College of Engineering,13.9326093,75.574978,partial
+E064,Adichunchanagiri Institute of Technology,13.318014,75.7738743,success
+E063,S.J.M. Institute of Technology,14.2266443,76.4005122,partial
+E062,Bapuji Institute of Engineering & Technology,14.4584756,75.917161,success
+E061,University B.D.T. College of Engineering,14.4679807,75.9195682,partial
+E059,P.D.A. College of Engineering,17.3310003,76.8334228,partial
+E058,P.E.S. College of Engineering,12.5238888,76.8961961,partial
+E057,JSS Science and Technology University,12.3051828,76.6553609,partial
+E055,P.A. College of Engineering,12.8698101,74.8430082,partial
+E054,K.V.G. College of Engineering,12.5576644,75.3907575,partial
+E049,B.V.V. Sangha's Basaveshwara Engineering College,16.1719529,75.6612221,success
+E048,B.M.S. College of Engineering,12.9767936,77.590082,partial
+E047,Malnad College of Engineering,13.0431326,76.1004835,success
+E046,H.K.E. Society's Sir M. Visvesvaraya College of Engineering,16.1983225,77.3527444,partial
+E044,Bheemanna Khandre Institute of Technology,18.0742193,77.1980095,partial
+E043,Guru Nanak Dev Engineering College,17.8968292,77.5108078,partial
+E042,Khaja Bandanawaz University,17.3310003,76.8334228,partial
+E041,P.D.A. College of Engineering,17.3310003,76.8334228,partial
+E040,Hira Sugar Institute of Technology,16.230857,74.6029767,partial
+E038,BLDEA's V.P. Dr.P.G. Hallakatti College of Engineering & Technology,16.8269911,75.7175387,partial
+E037,K.L.S. Gogte Institute of Technology,15.8152707,74.4874436,partial
+E036,K.L.E. Technological University,15.3518378,75.1379848,partial
+E035,Anjuman Institute of Technology & Management,13.9893566,74.5656301,partial
+E034,S.D.M. College of Engineering & Technology,15.4540505,75.0066516,partial
+E033,Sri Taralabalu Jagadguru Institute of Technology,14.6158522,75.6339974,success
+E032,R.T.E. Society's Rural Engineering College,15.4331872,75.5288841,success
+E031,B.V.V. Sangha's Basaveshwara Engineering College,16.1719529,75.6612221,success
+E029,Maratha Mandal Engineering College,15.8824175,74.4977117,success
+E028,Tontadarya College of Engineering,15.4126417,75.6360909,partial
+E024,Malnad College of Engineering,13.0431326,76.1004835,success
+E023,P.E.S. College of Engineering,12.5238888,76.8961961,partial
+E022,The National Institute of Engineering,12.3051828,76.6553609,partial
+E021,Sri Jayachamarajendra College of Engineering,12.3152626,76.6119107,partial
+E018,Kalpatharu Institute of Technology,,,failed
+E017,Sri Siddhartha Institute of Technology,13.3169905,77.0911784,success
+E016,Siddaganga Institute of Technology,13.3385842,77.1140959,success
+E015,Dr. T. Thimmaiah Institute of Technology,12.9545994,78.2731252,partial
+E013,Ghousia Engineering College,12.7344498,77.2929115,partial
+E012,Sir M. Visvesvaraya Institute of Technology,13.1976048,77.7074856,partial
+E009,PES University,12.9342358,77.5343239,partial
+E008,Bangalore Institute of Technology,12.9428739,77.5799861,success
+E007,Dayananda Sagar College of Engineering,12.9767936,77.590082,partial
+E006,M.S. Ramaiah Institute of Technology,13.0309207,77.5647436,partial
+E005,R.V. College of Engineering,12.9232191,77.5006464,partial
+E004,Dr. Ambedkar Institute of Technology,12.9645978,77.5065863,partial
+E003,B.M.S. College of Engineering,12.9767936,77.590082,partial
+E002,Govt. S.K.S.J.T. Institute of Engineering,12.9767936,77.590082,partial
+E001,University Visvesvaraya College of Engineering,12.9747451,77.5859733,partial

@@ -60,6 +60,11 @@ app.get('/health', (req: Request, res: Response) => {
     });
 });
 
+// Favicon handler
+app.get('/favicon.ico', (req: Request, res: Response) => {
+    res.status(204).end();
+});
+
 // BHARAT MINDS API routes
 app.use('/api/users', userRoutes);
 app.use('/api/ranks', ranksRoutes);
@@ -102,6 +107,9 @@ app.get('/', (req: Request, res: Response) => {
                 getByCode: 'GET /api/colleges/:code',
                 listCities: 'GET /api/colleges/cities/list',
                 listTypes: 'GET /api/colleges/types/list',
+                compare: 'POST /api/colleges/compare (body: { collegeCodes: [] })',
+                singleCompare: 'GET /api/colleges/:code/compare',
+                batchCompare: 'POST /api/colleges/batch-compare (body: { collegeCodes: [] })',
             },
             courses: {
                 base: '/api/courses',
