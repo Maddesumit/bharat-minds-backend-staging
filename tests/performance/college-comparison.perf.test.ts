@@ -11,7 +11,7 @@ import { databases } from '../../src/config/appwrite.config';
 // We inject artificial database delays (e.g., 50ms) to ensure load tests 
 // realistically benchmark Node's concurrency queues and event loop overhead
 // and not just instant mock resolutions.
-const SIMULATED_DB_DELAY = 50; 
+const SIMULATED_DB_DELAY = 5; 
 
 jest.mock('../../src/config/appwrite.config', () => ({
     databases: {

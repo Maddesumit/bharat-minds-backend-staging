@@ -34,7 +34,9 @@ async function withRetry<T>(
             return result;
         } catch (error: any) {
             lastError = error;
-            console.error(`Attempt ${attempt}/${maxRetries} failed:`, error.message);
+            if (process.env.NODE_ENV !== 'test') {
+                console.error(`Attempt ${attempt}/${maxRetries} failed:`, error.message);
+            }
 
             if (attempt < maxRetries) {
                 const delay = Math.pow(2, attempt - 1) * 1000;
@@ -155,8 +157,8 @@ export function calculateDistance(lat1: number, lon1: number, lat2: number, lon2
 /**
  * Calculate score for college type based on preference
  */
-export function calculateTypeScore(type: string, preference?: string): number {
-    const typeLower = type.toLowerCase();
+export function calculateTypeScore(type?: string, preference?: string): number {
+    const typeLower = (type || '').toLowerCase();
     
     // Priority base points
     const baseScores: Record<string, number> = {
@@ -364,11 +366,13 @@ export function calculateComparisonScore(
     }
 
     // Type component
-    const typeRawScore = calculateTypeScore(comparison.collegeType, criteria.collegeTypePreference);
-    const typeScoreNormalized = (typeRawScore / 5) * weights.type;
-    score += typeScoreNormalized;
-    totalWeight += weights.type;
-    comparison.typeScore = Math.round((typeRawScore / 5) * 100);
+    if (comparison.collegeType) {
+        const typeRawScore = calculateTypeScore(comparison.collegeType, criteria.collegeTypePreference);
+        const typeScoreNormalized = (typeRawScore / 5) * weights.type;
+        score += typeScoreNormalized;
+        totalWeight += weights.type;
+        comparison.typeScore = Math.round((typeRawScore / 5) * 100);
+    }
 
     // Year component
     if (comparison.established && criteria.establishmentYearPreference !== 'none') {
@@ -481,7 +485,9 @@ export async function compareColleges(criteria: ComparisonCriteria) {
         };
 
     } catch (error: any) {
-        console.error('Compare colleges error:', error);
+        if (process.env.NODE_ENV !== 'test') {
+            console.error('Compare colleges error:', error);
+        }
         return {
             success: false,
             error: error.message || 'Failed to compare colleges'
@@ -564,7 +570,9 @@ export async function getSingleCollegeComparison(
         };
 
     } catch (error: any) {
-        console.error('Single college comparison error:', error);
+        if (process.env.NODE_ENV !== 'test') {
+            console.error('Single college comparison error:', error);
+        }
         return {
             success: false,
             error: error.message || 'Failed to get comparison'

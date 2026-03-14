@@ -7,7 +7,7 @@
         "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
         "build": "tsc",
         "start": "node dist/index.js",
-        "test": "jest",
+        "test": "jest --runInBand",
         "setup:db": "ts-node src/scripts/setup-database.ts",
         "setup:normalized": "ts-node src/scripts/setup-normalized-schema-v2.ts",
         "setup:counselling": "ts-node src/scripts/setup-normalized-counselling-schema.ts",

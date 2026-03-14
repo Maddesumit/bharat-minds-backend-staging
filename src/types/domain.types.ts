@@ -100,6 +100,8 @@ export enum SeatType {
  */
 export enum CollegeType {
     GOVERNMENT = 'Government',
+    AIDED = 'Aided',
+    PRIVATE = 'Private',
     VTU_PRIVATE = 'VTU-Affiliated Private',
     AUTONOMOUS = 'Autonomous',
     DEEMED = 'Deemed University',
