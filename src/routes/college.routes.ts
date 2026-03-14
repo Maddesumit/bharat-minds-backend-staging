@@ -187,7 +187,9 @@ router.get(
         query('courseCode').optional().isString(),
         query('category').optional().isString(),
         query('academicYear').optional().isInt().toInt(),
-        query('includeSimilar').optional().toBoolean()
+        query('includeSimilar').optional().toBoolean(),
+        query('collegeTypePreference').optional().isIn(['government', 'aided', 'private', 'any']),
+        query('establishmentYearPreference').optional().isIn(['newest', 'oldest', 'none'])
     ],
     async (req: Request, res: Response) => {
         try {
@@ -205,7 +207,9 @@ router.get(
                     courseCode: req.query.courseCode as string,
                     category: req.query.category as string,
                     academicYear: req.query.academicYear ? Number(req.query.academicYear) : undefined,
-                    includeSimilar: req.query.includeSimilar as any === true
+                    includeSimilar: req.query.includeSimilar as any === true,
+                    collegeTypePreference: req.query.collegeTypePreference as any,
+                    establishmentYearPreference: req.query.establishmentYearPreference as any
                 }
             );
 
@@ -240,7 +244,9 @@ router.post(
         body('includeFees').optional().isBoolean(),
         body('exportFormat').optional().isIn(['json', 'csv', 'pdf']).withMessage('Invalid export format'),
         body('priorities').optional().isObject(),
-        body('studentLocation').optional().isObject()
+        body('studentLocation').optional().isObject(),
+        body('collegeTypePreference').optional().isIn(['government', 'aided', 'private', 'any']),
+        body('establishmentYearPreference').optional().isIn(['newest', 'oldest', 'none'])
     ],
     async (req: Request, res: Response) => {
         try {
@@ -539,7 +545,11 @@ router.post(
         body('priorities.fees').optional().isBoolean().withMessage('fees priority must be boolean'),
         body('priorities.distance').optional().isBoolean().withMessage('distance priority must be boolean'),
         body('priorities.placement').optional().isBoolean().withMessage('placement priority must be boolean'),
-        body('priorities.rating').optional().isBoolean().withMessage('rating priority must be boolean')
+        body('priorities.rating').optional().isBoolean().withMessage('rating priority must be boolean'),
+        body('priorities.type').optional().isBoolean().withMessage('type priority must be boolean'),
+        body('priorities.year').optional().isBoolean().withMessage('year priority must be boolean'),
+        body('collegeTypePreference').optional().isIn(['government', 'aided', 'private', 'any']),
+        body('establishmentYearPreference').optional().isIn(['newest', 'oldest', 'none'])
     ],
     async (req: Request, res: Response) => {
         try {

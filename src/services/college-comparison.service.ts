@@ -57,7 +57,11 @@ export interface ComparisonCriteria {
         distance?: boolean;
         placement?: boolean;
         rating?: boolean;
+        type?: boolean;
+        year?: boolean;
     };
+    collegeTypePreference?: 'government' | 'aided' | 'private' | 'any';
+    establishmentYearPreference?: 'newest' | 'oldest' | 'none';
 }
 
 /**
@@ -126,6 +130,9 @@ export interface CollegeComparison {
     naacGrade?: string;
     // Location & Scoring
     distance?: number; // In kilometers
+    established?: number;
+    typeScore?: number;
+    yearScore?: number;
     overallScore?: number; // Normalized score 0-100
 }
 
@@ -143,6 +150,50 @@ export function calculateDistance(lat1: number, lon1: number, lat2: number, lon2
         Math.sin(dLon / 2) * Math.sin(dLon / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
+}
+
+/**
+ * Calculate score for college type based on preference
+ */
+export function calculateTypeScore(type: string, preference?: string): number {
+    const typeLower = type.toLowerCase();
+    
+    // Priority base points
+    const baseScores: Record<string, number> = {
+        'government': 3,
+        'aided': 2,
+        'private': 1
+    };
+
+    // If a specific preference is set and matches
+    if (preference && preference !== 'any' && typeLower.includes(preference.toLowerCase())) {
+        return 5; // Bonus for exact preference match
+    }
+
+    // Default scoring based on governance type
+    if (typeLower.includes('government')) return baseScores.government;
+    if (typeLower.includes('aided')) return baseScores.aided;
+    
+    return baseScores.private;
+}
+
+/**
+ * Calculate score for establishment year based on preference
+ */
+export function calculateYearScore(year?: number, preference?: 'newest' | 'oldest' | 'none'): number {
+    if (!year || !preference || preference === 'none') return 0;
+
+    const currentYear = new Date().getFullYear();
+    const age = currentYear - year;
+
+    if (preference === 'newest') {
+        // Newer is better: Higher score for lower age
+        // Assume 100 years as max age for normalization
+        return Math.max(0, 10 - Math.min(10, Math.floor(age / 10)));
+    } else {
+        // Older is better: Higher score for higher age
+        return Math.min(10, Math.floor(age / 10));
+    }
 }
 
 /**
@@ -273,12 +324,14 @@ export function calculateComparisonScore(
     let score = 0;
     let totalWeight = 0;
 
-    // Weights configuration
+    // Weights configuration (Balanced)
     const weights: Record<string, number> = {
-        fees: criteria.priorities?.fees ? 40 : 20,
-        distance: criteria.priorities?.distance ? 40 : 20,
-        placement: criteria.priorities?.placement ? 30 : 20,
-        rating: criteria.priorities?.rating ? 30 : 20
+        fees: criteria.priorities?.fees ? 25 : 15,
+        distance: criteria.priorities?.distance ? 25 : 15,
+        placement: criteria.priorities?.placement ? 20 : 10,
+        rating: criteria.priorities?.rating ? 20 : 10,
+        type: criteria.priorities?.type ? 20 : 15,
+        year: criteria.priorities?.year ? 20 : 15
     };
 
     // Fees component (Lower is better)
@@ -302,13 +355,28 @@ export function calculateComparisonScore(
         totalWeight += weights.placement;
     }
 
-    // Rating component (Higher is better, assuming 1-5 or 1-10 normalized to percentage)
+    // Rating component (Higher is better)
     if (comparison.overallRating !== undefined) {
-        // Assume rating is out of 5 based on common patterns, normalization logic can be adjusted
         const ratingNormalization = comparison.overallRating > 5 ? 10 : 5;
         const ratingScore = (comparison.overallRating / ratingNormalization) * weights.rating;
         score += ratingScore;
         totalWeight += weights.rating;
+    }
+
+    // Type component
+    const typeRawScore = calculateTypeScore(comparison.collegeType, criteria.collegeTypePreference);
+    const typeScoreNormalized = (typeRawScore / 5) * weights.type;
+    score += typeScoreNormalized;
+    totalWeight += weights.type;
+    comparison.typeScore = Math.round((typeRawScore / 5) * 100);
+
+    // Year component
+    if (comparison.established && criteria.establishmentYearPreference !== 'none') {
+        const yearRawScore = calculateYearScore(comparison.established, criteria.establishmentYearPreference);
+        const yearScoreNormalized = (yearRawScore / 10) * weights.year;
+        score += yearScoreNormalized;
+        totalWeight += weights.year;
+        comparison.yearScore = Math.round((yearRawScore / 10) * 100);
     }
 
     // Normalize final score to 0-100
@@ -344,7 +412,8 @@ function aggregateComparisonData(
             placementRate: metricData?.placementRate || college.placementRate,
             nirfRanking: metricData?.nirfRanking,
             overallRating: metricData?.overallRating || college.rating,
-            naacGrade: metricData?.naacGrade
+            naacGrade: metricData?.naacGrade,
+            established: college.established || college.Established
         };
 
         // Calculate distance if coordinates are available
@@ -394,10 +463,13 @@ export async function compareColleges(criteria: ComparisonCriteria) {
         const maxDist = Math.max(...comparisonResults.map(c => c.distance || 0), 0);
 
         // 4. Calculate scores and Finalize
-        const finalizedResults = comparisonResults.map(comp => ({
-            ...comp,
-            overallScore: calculateComparisonScore(comp, criteria, { maxFees, maxDist })
-        }));
+        const finalizedResults = comparisonResults.map(comp => {
+            const overallScore = calculateComparisonScore(comp, criteria, { maxFees, maxDist });
+            return {
+                ...comp,
+                overallScore
+            };
+        });
 
         // 5. Sort by overall score (highest first)
         finalizedResults.sort((a, b) => (b.overallScore || 0) - (a.overallScore || 0));
@@ -427,6 +499,8 @@ export async function getSingleCollegeComparison(
         category?: string;
         academicYear?: number;
         includeSimilar?: boolean;
+        collegeTypePreference?: 'government' | 'aided' | 'private' | 'any';
+        establishmentYearPreference?: 'newest' | 'oldest' | 'none';
     }
 ) {
     try {
@@ -464,16 +538,22 @@ export async function getSingleCollegeComparison(
 
         // 4. Aggregate and finalize
         // We pass empty priorities since this is a general view, or we could accept them in options
-        const comparisonResults = aggregateComparisonData(colleges, feeMap, metricsMap, { collegeCodes });
+        const comparisonResults = aggregateComparisonData(colleges, feeMap, metricsMap, { ...options, collegeCodes });
 
         // Calculate min/max for normalization (using the whole batch for relative scoring)
         const maxFees = Math.max(...comparisonResults.map(c => c.fees || 0), 0);
         const maxDist = Math.max(...comparisonResults.map(c => c.distance || 0), 0);
 
-        const finalizedResults = comparisonResults.map(comp => ({
-            ...comp,
-            overallScore: calculateComparisonScore(comp, { collegeCodes }, { maxFees, maxDist })
-        }));
+        const finalizedResults = comparisonResults.map(comp => {
+            const overallScore = calculateComparisonScore(comp, { 
+                ...options, 
+                collegeCodes 
+            }, { maxFees, maxDist });
+            return {
+                ...comp,
+                overallScore
+            };
+        });
 
         return {
             success: true,
@@ -535,10 +615,13 @@ export async function compareCollegesBatch(criteria: AdvancedComparisonCriteria)
         const maxDist = Math.max(...comparisonResults.map(c => c.distance || 0), 0);
 
         // 4. Calculate scores and Finalize
-        const finalizedResults = comparisonResults.map(comp => ({
-            ...comp,
-            overallScore: calculateComparisonScore(comp, criteria, { maxFees, maxDist })
-        }));
+        const finalizedResults = comparisonResults.map(comp => {
+            const overallScore = calculateComparisonScore(comp, criteria, { maxFees, maxDist });
+            return {
+                ...comp,
+                overallScore
+            };
+        });
 
         // 5. Sort by overall score (highest first)
         finalizedResults.sort((a, b) => (b.overallScore || 0) - (a.overallScore || 0));

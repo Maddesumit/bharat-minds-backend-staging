@@ -60,6 +60,11 @@ app.get('/health', (req: Request, res: Response) => {
     });
 });
 
+// Favicon handler
+app.get('/favicon.ico', (req: Request, res: Response) => {
+    res.status(204).end();
+});
+
 // BHARAT MINDS API routes
 app.use('/api/users', userRoutes);
 app.use('/api/ranks', ranksRoutes);
